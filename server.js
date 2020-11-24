@@ -20,6 +20,7 @@ class Player{
         this.maxSpeed = 0.2;
         this.rot = 0;
         this.id = id;
+        this.pushing = 0;
     }
 
     update(angle){
@@ -31,11 +32,16 @@ class Player{
     }
 
     move(){
+        if(this.pushing){
+            this.pushing -= 1;
+        }
         let x = this.pos.x + Math.sin(this.rot) * this.speed;
         let y = this.pos.y - Math.cos(this.rot) * this.speed;
+        if(this.pushing && this.pushing == 1)pushDesk(this.pos,this.rot);
         if(isValidPlayerPos(x,y,this.id)){
             this.pos.x = x;
             this.pos.y = y;
+            this.pushing = 0;
         }
     }
 }
@@ -48,7 +54,7 @@ class Object{
 }
 
 var gameState = {
-    worldSize: 12,
+    worldSize: 9,
     players: {},
     objects: {},
     targetID: 0,
@@ -71,6 +77,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('target', () => {
+        if(!(socket.id in gameState.players)) return;
         if(socket.id == gameState.targetID){
             gameState.targetID = 0;
             gameState.players[socket.id].maxSpeed = 0.2;
@@ -78,6 +85,16 @@ io.on('connection', function (socket) {
         else{
             gameState.targetID = socket.id;
             gameState.players[socket.id].maxSpeed = 0.08;
+        }
+    });
+
+    socket.on('push',isPushed => {
+        if(socket.id == gameState.targetID)return;
+        if(isPushed && socket.id in gameState.players){
+            gameState.players[socket.id].pushing = 60;
+        }
+        else if (socket.id in gameState.players){
+            gameState.players[socket.id].pushing = 0;
         }
     });
 
@@ -165,5 +182,51 @@ function isValidPlayerPos(x,y,id){
         ) return false;
     }
     return true;
+}
+
+function getDeskId(pos){
+    for(id in gameState.objects){
+        let obj = gameState.objects[id];
+        if(obj.type != 'desk')return 0;
+        if(obj.pos.x == pos.x && obj.pos.y == pos.y)return id;
+    }
+}
+
+function isValidDeskPos(pos){
+    if(pos.x < 0 || pos.x > gameState.worldSize || pos.y < 0 || pos.y > gameState.worldSize) return false;
+    if(getDeskId(pos)) return false;
+    return true;
+}
+
+function pushDesk(Ppos,rot){
+    let pos = {x:Ppos.x,y:Ppos.y};
+    pos.x = Math.floor(Ppos.x);
+    pos.y = Math.floor(Ppos.y);
+    let newPos = {x:pos.x,y:pos.y};
+    if(rot < 0.5){
+        //up
+        pos.y -= 1;
+        newPos.y -= 2;
+    }
+    else if(rot < 2.4){
+        //right
+        pos.x += 1;
+        newPos.x += 2;
+    }
+    else if(rot < 3.2){
+        //down
+        pos.y += 1;
+        newPos.y += 2;
+    }
+    else{
+        //left
+        pos.x -= 1;
+        newPos.x -= 2;
+    }
+    let id = getDeskId(pos);
+    if(id && isValidDeskPos(newPos)){
+        gameState.objects[id].pos.x = newPos.x;
+        gameState.objects[id].pos.y = newPos.y;
+    }
 }
 

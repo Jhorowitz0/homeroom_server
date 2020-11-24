@@ -44,23 +44,26 @@ function spawn(pos){
 
 		keyPressed = ()=>{
 			if(keyCode == 84) socket.emit('target');
+			else if(keyCode == 32) socket.emit('push',true);
 			else movePlayer();
 		}
 
 		keyReleased = ()=>{
+			if(!keyIsDown(32))socket.emit('push',false);
+
 			if(keyIsDown(37)){
 				movePlayer();
 				return;
 			}
-			if(keyIsDown(38)){
+			else if(keyIsDown(38)){
 				movePlayer();
 				return;
 			}
-			if(keyIsDown(39)){
+			else if(keyIsDown(39)){
 				movePlayer();
 				return;
 			}
-			if(keyIsDown(40)){
+			else if(keyIsDown(40)){
 				movePlayer();
 				return;
 			}
@@ -205,6 +208,9 @@ function drawPlayers(){
 		noStroke();
 		drawTriangle(0,-1 *size*0.3,size*0.2,size*0.1);
 		pop();
+		fill(0,0,0,100);
+		let s = (player.pushing / 100) * 0.5;
+		drawEllipseOnGrid(player.pos.x,player.pos.y,s);
 	}
 }
 
