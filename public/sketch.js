@@ -6,6 +6,7 @@ var gameState = null;
 function setup() {
 	createCanvas(800,800);
 	background(10);
+	rectMode(CENTER);
 
 	socket = io();
 
@@ -174,7 +175,7 @@ function drawGrid(){
 	for(let x = 0; x < gameState.worldSize; x++){
 		for(let y = 0; y < gameState.worldSize; y++){
 			fill(50);
-			drawRectOnGrid(x,y,0.9);
+			drawRectOnGrid(x+0.5,y+0.5,0.9);
 		}
 	}
 }
@@ -217,8 +218,14 @@ function drawPlayers(){
 function drawObjects(){
 	for(id in gameState.objects){
 		let obj = gameState.objects[id];
+		let scale = 1.05;
+		noStroke();
 		fill(100);
-		drawRectOnGrid(obj.pos.x,obj.pos.y,0.9);
+		if(obj.type == 'case'){
+			fill(255,0,255);
+			scale = 0.3;
+		}
+		drawRectOnGrid(obj.pos.x + 0.5,obj.pos.y + 0.5,scale);
 	}
 }
 
@@ -226,7 +233,7 @@ function drawLobby(){
 
 	noStroke();
 	fill(0,0,0,200);
-	rect(0,0,width,height);
+	rect(height/2,width/2,width,height);
 
 	noFill();
 	let mousePos = getGridPos(mouseX,mouseY);
@@ -234,7 +241,7 @@ function drawLobby(){
 	if(keyIsDown(68)){
 		stroke(255,0,0);
 		if(isValidBlockPos(mousePos))stroke(0,255,0);
-		drawRectOnGrid(mousePos.x,mousePos.y,0.9);
+		drawRectOnGrid(mousePos.x+0.5,mousePos.y+0.5,0.9);
 	}
 	else{
 		stroke(255,0,0);

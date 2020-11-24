@@ -17,10 +17,11 @@ class Player{
     constructor(x,y,id){
         this.pos = { x:x, y:y };
         this.speed = 0;
-        this.maxSpeed = 0.2;
+        this.maxSpeed = 0.15;
         this.rot = 0;
         this.id = id;
         this.pushing = 0;
+        this.heldItem = 0;
     }
 
     update(angle){
@@ -59,6 +60,7 @@ var gameState = {
     objects: {},
     targetID: 0,
 }
+
 
 //when a client connects
 io.on('connection', function (socket) {
@@ -159,9 +161,6 @@ function getDistance(pos1,pos2){
     return Math.sqrt(dx * dx + dy * dy);
 }
 
-function getDistToSquare(pos1,pos2){
-}
-
 function isValidPlayerPos(x,y,id){
     if(x < 0.2 || x > gameState.worldSize-0.2) return false;
     if(y < 0.2 || y > gameState.worldSize-0.2) return false;
@@ -176,9 +175,10 @@ function isValidPlayerPos(x,y,id){
 
     for(i in gameState.objects){
         let obj = gameState.objects[i];
+        if(obj.type != 'desk')continue;
         if(
-            x > obj.pos.x && x < obj.pos.x + 1 &&
-            y > obj.pos.y && y < obj.pos.y + 1
+            x+0.2 > obj.pos.x && x-0.2 < obj.pos.x + 1 &&
+            y+0.2 > obj.pos.y && y-0.2 < obj.pos.y + 1
         ) return false;
     }
     return true;
@@ -192,8 +192,8 @@ function getDeskId(pos){
     }
 }
 
-function isValidDeskPos(pos){
-    if(pos.x < 0 || pos.x > gameState.worldSize || pos.y < 0 || pos.y > gameState.worldSize) return false;
+function isValidPos(pos){
+    if(pos.x < 0 || pos.x > gameState.worldSize-1 || pos.y < 0 || pos.y > gameState.worldSize-1) return false;
     if(getDeskId(pos)) return false;
     return true;
 }
@@ -224,7 +224,7 @@ function pushDesk(Ppos,rot){
         newPos.x -= 2;
     }
     let id = getDeskId(pos);
-    if(id && isValidDeskPos(newPos)){
+    if(id && isValidPos(newPos)){
         gameState.objects[id].pos.x = newPos.x;
         gameState.objects[id].pos.y = newPos.y;
     }
