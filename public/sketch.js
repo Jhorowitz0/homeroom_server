@@ -43,7 +43,8 @@ function spawn(pos){
 		}
 
 		keyPressed = ()=>{
-			movePlayer();
+			if(keyCode == 84) socket.emit('target');
+			else movePlayer();
 		}
 
 		keyReleased = ()=>{
@@ -175,7 +176,22 @@ function drawGrid(){
 	}
 }
 
+function drawTarget(x,y,s){
+	let result = getCanvasPos(x,y);
+	let size = width/gameState.worldSize;
+	noFill();
+	stroke(255,0,0);
+	strokeWeight(5);
+	ellipse(result.x,result.y,size*s,size*s);
+	line(result.x-size/2,result.y,result.x + size/2, result.y);
+	line(result.x,result.y-size/2,result.x, result.y + size/2);
+	noStroke();
+}
+
 function drawPlayers(){
+	let t = gameState.players[gameState.targetID];
+	if(t)drawTarget(t.pos.x,t.pos.y,0.65);
+
 	for(id in gameState.players){
 		let player = gameState.players[id];
 		fill(0,255,0);

@@ -17,7 +17,7 @@ class Player{
     constructor(x,y,id){
         this.pos = { x:x, y:y };
         this.speed = 0;
-        this.rotSpeed = 1;
+        this.maxSpeed = 0.2;
         this.rot = 0;
         this.id = id;
     }
@@ -26,7 +26,7 @@ class Player{
         if(angle == 'stop') this.speed = 0;
         else{
             this.rot = angle;
-            this.speed = 0.2;
+            this.speed = this.maxSpeed;
         }
     }
 
@@ -51,6 +51,7 @@ var gameState = {
     worldSize: 12,
     players: {},
     objects: {},
+    targetID: 0,
 }
 
 //when a client connects
@@ -67,6 +68,17 @@ io.on('connection', function (socket) {
 
     socket.on('update', function(angle){
         if(socket.id in gameState.players)gameState.players[socket.id].update(angle);
+    });
+
+    socket.on('target', () => {
+        if(socket.id == gameState.targetID){
+            gameState.targetID = 0;
+            gameState.players[socket.id].maxSpeed = 0.2;
+        }
+        else{
+            gameState.targetID = socket.id;
+            gameState.players[socket.id].maxSpeed = 0.08;
+        }
     });
 
     socket.on('clear', ()=>{
