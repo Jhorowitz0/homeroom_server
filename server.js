@@ -10,31 +10,47 @@ var http = require('http').createServer(app);
 var io = require('socket.io')(http);
 // io.sockets.emit('thing');
 app.use(express.static('public'));
-var UPDATE_TIME = 100
+var UPDATE_TIME = 50;
 
 //------------------------CLASSES---------------------------
 class Player{
-    constructor(x,y){
+    constructor(x,y,id){
         this.pos = { x:x, y:y };
-        this.speed = 0.05;
+        this.speed = 0;
         this.rotSpeed = 1;
         this.rot = 0;
+        this.id = id;
     }
 
-    move(angle){
-        this.rot = angle;
+    update(angle){
+        if(angle == 'stop') this.speed = 0;
+        else{
+            this.rot = angle;
+            this.speed = 0.2;
+        }
+    }
+
+    move(){
         let x = this.pos.x + Math.sin(this.rot) * this.speed;
         let y = this.pos.y - Math.cos(this.rot) * this.speed;
-        if(isValidPlayerPos(x,y)){
+        if(isValidPlayerPos(x,y,this.id)){
             this.pos.x = x;
             this.pos.y = y;
         }
     }
-} 
+}
+
+class Object{
+    constructor(x,y,type){
+        this.pos = { x:x, y:y };
+        this.type = type;
+    }
+}
 
 var gameState = {
     worldSize: 12,
-    players: {}
+    players: {},
+    objects: {},
 }
 
 //when a client connects
@@ -46,12 +62,38 @@ io.on('connection', function (socket) {
 
     socket.on('spawn', function(pos){
         console.log('user spawned');
-        gameState.players[socket.id] = new Player(pos.x,pos.y);
+        gameState.players[socket.id] = new Player(pos.x,pos.y,socket.id);
     });
 
-    socket.on('move', function(angle){
-        if(socket.id in gameState.players)gameState.players[socket.id].move(angle);
+    socket.on('update', function(angle){
+        if(socket.id in gameState.players)gameState.players[socket.id].update(angle);
     });
+
+    socket.on('clear', ()=>{
+        gameState.players = {};
+        gameState.objects = {};
+        io.sockets.emit('kicked');
+    });
+
+    socket.on('resize',delta=>{
+        gameState.players = {};
+        gameState.objects = {};
+        io.sockets.emit('kicked');
+        gameState.worldSize -= delta;
+    });
+
+    socket.on('desk', pos=>{
+        for(id in gameState.objects){
+            let obj = gameState.objects[id];
+            if(obj.type == 'desk'){
+                if(pos.x == obj.pos.x && pos.y == obj.pos.y){                  delete gameState.objects[id];
+                    return;
+                }
+            }
+        }
+
+        gameState.objects[Math.random()] = new Object(pos.x,pos.y,'desk');
+    })
 
     socket.on('disconnect', function(){
         console.log('user disconnected');
@@ -60,6 +102,9 @@ io.on('connection', function (socket) {
 });
 
 setInterval(()=>{
+    for(id in gameState.players){
+        gameState.players[id].move();
+    }
     io.sockets.emit('state', gameState);
 }, UPDATE_TIME);
 
@@ -79,8 +124,34 @@ function lerp(start,end,value){
     return start + shortAngleDist(start,end)*value;
 }
 
-function isValidPlayerPos(x,y){
-    if(x < 0 || x > gameState.worldSize -1 ) return false;
-    if(y < 0 || y > gameState.worldSize - 1) return false;
+function getDistance(pos1,pos2){
+    let dx = pos2.x - pos1.x;
+    let dy = pos2.y - pos1.y;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getDistToSquare(pos1,pos2){
+}
+
+function isValidPlayerPos(x,y,id){
+    if(x < 0.2 || x > gameState.worldSize-0.2) return false;
+    if(y < 0.2 || y > gameState.worldSize-0.2) return false;
+
+    for(i in gameState.players){
+        if(i == id)continue;
+        else{
+            let dist = getDistance(gameState.players[i].pos,{x:x,y:y});
+            if(dist < 0.4) return;
+        }
+    }
+
+    for(i in gameState.objects){
+        let obj = gameState.objects[i];
+        if(
+            x > obj.pos.x && x < obj.pos.x + 1 &&
+            y > obj.pos.y && y < obj.pos.y + 1
+        ) return false;
+    }
     return true;
 }
+
