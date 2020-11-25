@@ -28,6 +28,7 @@ function draw(){
 		drawGrid();
 		drawPlayers();
 		drawObjects();
+		drawAgents();
 		if(socket.id in gameState.players){
 			// movePlayer();
 		}
@@ -45,12 +46,12 @@ function spawn(pos){
 
 		keyPressed = ()=>{
 			if(keyCode == 84) socket.emit('target');
-			else if(keyCode == 32) socket.emit('push',true);
+			else if(keyCode == 32) socket.emit('action',true);
 			else movePlayer();
 		}
 
 		keyReleased = ()=>{
-			if(!keyIsDown(32))socket.emit('push',false);
+			if(!keyIsDown(32))socket.emit('action',false);
 
 			if(keyIsDown(37)){
 				movePlayer();
@@ -87,6 +88,14 @@ function enterLobby(){
 				}
 				spawnPos.x += 0.5;
 				spawnPos.y += 0.5;
+				if(keyIsDown(80)){
+					socket.emit('case',spawnPos);
+					return;
+				}
+				if(keyIsDown(65)){
+					socket.emit('agent',spawnPos);
+					return;
+				}
 				if(isValidPlayerPos(spawnPos)) spawn(spawnPos);
 			}
 		}
@@ -224,8 +233,34 @@ function drawObjects(){
 		if(obj.type == 'case'){
 			fill(255,0,255);
 			scale = 0.3;
+			drawRectOnGrid(obj.pos.x,obj.pos.y,scale);
+			continue;
 		}
 		drawRectOnGrid(obj.pos.x + 0.5,obj.pos.y + 0.5,scale);
+	}
+}
+
+function drawAgents(){
+	for(id in gameState.agents){
+		let agent = gameState.agents[id];
+		noStroke();
+		fill(30,20,255);
+		drawEllipseOnGrid(agent.pos.x,agent.pos.y,0.7);
+		fill(255,0,0);
+		// drawEllipseOnGrid(agent.dest.x,agent.dest.y,0.3);
+		// for(id in agent.prevPos){
+		// 	fill(100);
+		// 	drawEllipseOnGrid(agent.prevPos[id].x,agent.prevPos[id].y,0.3);
+		// }
+		let pos = getCanvasPos(agent.pos.x,agent.pos.y);
+		push();
+		translate(pos.x,pos.y);
+		rotate(agent.rot);
+		let size = width/gameState.worldSize
+		noStroke();
+		fill(30,20,255);
+		drawTriangle(0,-1 *size*0.5,size*0.3,size*0.2);
+		pop();
 	}
 }
 
@@ -242,6 +277,16 @@ function drawLobby(){
 		stroke(255,0,0);
 		if(isValidBlockPos(mousePos))stroke(0,255,0);
 		drawRectOnGrid(mousePos.x+0.5,mousePos.y+0.5,0.9);
+	}
+	else if(keyIsDown(80)){
+		stroke(255,0,0);
+		if(isValidBlockPos(mousePos))stroke(0,255,0);
+		drawRectOnGrid(mousePos.x+0.5,mousePos.y+0.5,0.3);
+	}
+	else if(keyIsDown(65)){
+		stroke(255,0,0);
+		if(isValidBlockPos(mousePos))stroke(0,255,0);
+		drawEllipseOnGrid(mousePos.x+0.5,mousePos.y+0.5,0.8);
 	}
 	else{
 		stroke(255,0,0);
