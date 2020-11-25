@@ -92,8 +92,12 @@ function enterLobby(){
 					socket.emit('case',spawnPos);
 					return;
 				}
-				if(keyIsDown(65)){
-					socket.emit('agent',spawnPos);
+				if(keyIsDown(49)){
+					socket.emit('agent',{type: 'chase',pos: spawnPos});
+					return;
+				}
+				if(keyIsDown(50)){
+					socket.emit('agent',{type: 'guard',pos: spawnPos});
 					return;
 				}
 				if(isValidPlayerPos(spawnPos)) spawn(spawnPos);
@@ -246,7 +250,7 @@ function drawAgents(){
 		noStroke();
 		fill(30,20,255);
 		drawEllipseOnGrid(agent.pos.x,agent.pos.y,0.7);
-		fill(255,0,0);
+		// fill(255,0,0);
 		// drawEllipseOnGrid(agent.dest.x,agent.dest.y,0.3);
 		// for(id in agent.prevPos){
 		// 	fill(100);
@@ -283,7 +287,7 @@ function drawLobby(){
 		if(isValidBlockPos(mousePos))stroke(0,255,0);
 		drawRectOnGrid(mousePos.x+0.5,mousePos.y+0.5,0.3);
 	}
-	else if(keyIsDown(65)){
+	else if(keyIsDown(49) || keyIsDown(50)){
 		stroke(255,0,0);
 		if(isValidBlockPos(mousePos))stroke(0,255,0);
 		drawEllipseOnGrid(mousePos.x+0.5,mousePos.y+0.5,0.8);

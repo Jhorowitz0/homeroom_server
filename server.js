@@ -107,8 +107,16 @@ class Agent{
                     }
                 }
             }
-            let targetPos = gameState.players[gameState.targetID].pos;
+            let targetPos = {
+                x: gameState.players[gameState.targetID].pos.x,
+                y: gameState.players[gameState.targetID].pos.y
+            }
             if(getDistance(targetPos,this.pos) < 0.6) restartGame();
+            if(this.type == 'guard' && getDistance(targetPos,this.pos) > gameState.worldSize/3){
+                targetPos.x = this.startPos.x;
+                targetPos.y = this.startPos.y;
+                if(getDistance(targetPos,this.pos) < 1) return;
+            }
             let closest = 0;
             for(let i = 0; i < possiblePositions.length; i++){
                 let closestDist = getDistance(possiblePositions[closest],targetPos);
@@ -192,8 +200,20 @@ class Agent{
             this.pos.y = Math.floor(this.pos.y) + 0.5;
         } 
 
-        this.pos.x += Math.sin(this.rot) * this.speed;
-        this.pos.y -= Math.cos(this.rot) * this.speed;
+        let speed = this.speed;
+        let playersTouching = 0;
+        for(id in gameState.players){
+            if(id == gameState.targetID)continue;
+            if(getDistance(gameState.players[id].pos,this.pos) < 0.6){
+                playersTouching++;
+            }
+        }
+        if(playersTouching == 1) speed = speed * 0.3;
+        else if(playersTouching == 2) speed = speed * 0.1;
+        else if(playersTouching > 2) speed = 0;
+
+        this.pos.x += Math.sin(this.rot) * speed;
+        this.pos.y -= Math.cos(this.rot) * speed;
     }
 
     reset(){
@@ -287,16 +307,16 @@ io.on('connection', function (socket) {
         gameState.objects[Math.random()] = new Object(pos.x,pos.y,'desk');
     });
 
-    socket.on('agent', pos=>{
+    socket.on('agent', data=>{
         for(id in gameState.agents){
-            if(Math.floor(gameState.agents[id].pos.x) == Math.floor(pos.x)
-             && Math.floor(gameState.agents[id].pos.y) == Math.floor(pos.y)){
+            if(Math.floor(gameState.agents[id].pos.x) == Math.floor(data.pos.x)
+             && Math.floor(gameState.agents[id].pos.y) == Math.floor(data.pos.y)){
                  delete gameState.agents[id];
                  return;
              }
         }
-        if(isValidAgentPos(pos)){
-            gameState.agents[Math.random()] = new Agent(pos.x,pos.y,'null');
+        if(isValidAgentPos(data.pos)){
+            gameState.agents[Math.random()] = new Agent(data.pos.x,data.pos.y,data.type);
         }
     })
 
@@ -408,7 +428,7 @@ function isValidDeskPos(pos){
 }
 
 function isValidAgentPos(pos){
-    if(pos.x < 0 || pos.x > gameState.worldSize-1 || pos.y < 0 || pos.y > gameState.worldSize-1) return false;
+    if(pos.x < 0 || pos.x > gameState.worldSize || pos.y < 0 || pos.y > gameState.worldSize) return false;
     if(getDeskId({x:Math.floor(pos.x),y:Math.floor(pos.y)})) return false;
     return true;
 }
