@@ -53,29 +53,43 @@ class Player{
         }
         let x = this.pos.x + Math.sin(this.rot) * this.speed;
         let y = this.pos.y - Math.cos(this.rot) * this.speed;
+        if(gameState.backpacks[this.heldItem]) this.pushing = 0;
         if(this.pushing && this.pushing == 1)pushDesk(this.pos,this.rot);
         if(isValidPlayerPos(x,y,this.id)){
             this.pos.x = x;
             this.pos.y = y;
             this.pushing = 0;
-            if(this.heldItem && gameState.objects[this.heldItem]){
-                gameState.objects[this.heldItem].pos.x = x;
-                gameState.objects[this.heldItem].pos.y = y;
+            if(this.heldItem && gameState.backpacks[this.heldItem]){
+                gameState.backpacks[this.heldItem].pos.x = x;
+                gameState.backpacks[this.heldItem].pos.y = y;
             }
         }
     }
 }
 
-class Object{
-    constructor(x,y,type){
+class Desk{
+    constructor(x,y){
         this.startPos = { x:x, y:y };
         this.pos = { x:x, y:y };
-        this.type = type;
     }
 
     reset(){
         this.pos.x = this.startPos.x;
         this.pos.y = this.startPos.y;
+    }
+}
+
+class Backpack{
+    constructor(x,y){
+        this.startPos = { x:x, y:y };
+        this.pos = { x:x, y:y };
+        this.spilled = false;
+    }
+
+    reset(){
+        this.pos.x = this.startPos.x;
+        this.pos.y = this.startPos.y;
+        this.spilled = false;
     }
 }
 
@@ -211,6 +225,11 @@ class Agent{
         if(playersTouching == 1) speed = speed * 0.3;
         else if(playersTouching == 2) speed = speed * 0.1;
         else if(playersTouching > 2) speed = 0;
+        for(id in gameState.backpacks){
+            if(getDistance(gameState.backpacks[id].pos,this.pos)<0.7){
+                speed *= 0.3;
+            }
+        }
 
         this.pos.x += Math.sin(this.rot) * speed;
         this.pos.y -= Math.cos(this.rot) * speed;
@@ -234,8 +253,9 @@ class Agent{
 var gameState = {
     worldSize: 9,
     players: {},
-    objects: {},
+    desks: {},
     agents: {},
+    backpacks: {},
     targetID: 0,
 }
 
@@ -272,8 +292,10 @@ io.on('connection', function (socket) {
     socket.on('action',isPushed => {
         if(socket.id == gameState.targetID)return;
         if(isPushed && socket.id in gameState.players){
+            if(!gameState.players[socket.id].heldItem){
+                gameState.players[socket.id].pushing = 60;
+            }
             grab(socket.id);
-            gameState.players[socket.id].pushing = 60;
         }
         else if (socket.id in gameState.players){
             gameState.players[socket.id].pushing = 0;
@@ -282,29 +304,33 @@ io.on('connection', function (socket) {
 
     socket.on('clear', ()=>{
         gameState.players = {};
-        gameState.objects = {};
+        gameState.desks = {};
+        gameState.agents = {};
+        gameState.backpacks = {};
         io.sockets.emit('kicked');
     });
 
+    socket.on('restart', restartGame);
+
     socket.on('resize',delta=>{
         gameState.players = {};
-        gameState.objects = {};
+        gameState.desks = {};
+        gameState.agents = {};
+        gameState.backpacks = {};
         io.sockets.emit('kicked');
         gameState.worldSize -= delta;
     });
 
     socket.on('desk', pos=>{
-        for(id in gameState.objects){
-            let obj = gameState.objects[id];
-            if(obj.type == 'desk'){
-                if(pos.x == obj.pos.x && pos.y == obj.pos.y){                  
-                    delete gameState.objects[id];
+        for(id in gameState.desks){
+            let desk = gameState.desks[id];
+            if(pos.x == desk.pos.x && pos.y == desk.pos.y){                  
+                    delete gameState.desks[id];
                     return;
-                }
             }
         }
 
-        gameState.objects[Math.random()] = new Object(pos.x,pos.y,'desk');
+        gameState.desks[Math.random()] = new Desk(pos.x,pos.y);
     });
 
     socket.on('agent', data=>{
@@ -320,18 +346,16 @@ io.on('connection', function (socket) {
         }
     })
 
-    socket.on('case',pos=>{
+    socket.on('pack',pos=>{
         for(id in gameState.objects){
-            let obj = gameState.objects[id];
-            if(obj.type == 'case'){
+            let pack = gameState.backpacks[id];
                 if(pos.x == obj.pos.x && pos.y == obj.pos.y){
-                    delete gameState.objects[id];
+                    delete gameState.backpacks[id];
                     return;
                 }
-            }
         }
 
-        gameState.objects[Math.random()] = new Object(pos.x,pos.y,'case');
+        gameState.backpacks[Math.random()] = new Backpack(pos.x,pos.y);
     });
 
     socket.on('disconnect', function(){
@@ -385,9 +409,8 @@ function isValidPlayerPos(x,y,id){
         }
     }
 
-    for(i in gameState.objects){
-        let obj = gameState.objects[i];
-        if(obj.type != 'desk')continue;
+    for(i in gameState.desks){
+        let obj = gameState.desks[i];
         if(
             x+0.2 > obj.pos.x && x-0.2 < obj.pos.x + 1 &&
             y+0.2 > obj.pos.y && y-0.2 < obj.pos.y + 1
@@ -397,26 +420,24 @@ function isValidPlayerPos(x,y,id){
 }
 
 function getDeskId(pos){
-    for(id in gameState.objects){
-        let obj = gameState.objects[id];
-        if(obj.type != 'desk')return 0;
-        if(obj.pos.x == pos.x && obj.pos.y == pos.y)return id;
+    for(id in gameState.desks){
+        let desk = gameState.desks[id];
+        if(desk.pos.x == pos.x && desk.pos.y == pos.y)return id;
     }
 }
 
-function getCaseId(pos){
-    for(id in gameState.objects){
-        let obj = gameState.objects[id];
-        if(obj.type != 'case')return 0;
-        let objPos = {
-            x: Math.floor(obj.pos.x),
-            y: Math.floor(obj.pos.y)
+function getPackID(pos){
+    for(id in gameState.backpacks){
+        let pack = gameState.backpacks[id];
+        let packPos = {
+            x: Math.floor(pack.pos.x),
+            y: Math.floor(pack.pos.y)
         }
         let rPos = {
             x: Math.floor(pos.x),
             y: Math.floor(pos.y),
         }
-        if(objPos.x == rPos.x && objPos.y == rPos.y)return id;
+        if(packPos.x == rPos.x && packPos.y == rPos.y)return id;
     }
 }
 
@@ -424,6 +445,13 @@ function getCaseId(pos){
 function isValidDeskPos(pos){
     if(pos.x < 0 || pos.x > gameState.worldSize-1 || pos.y < 0 || pos.y > gameState.worldSize-1) return false;
     if(getDeskId(pos)) return false;
+    if(getPackID(pos)) return false;
+    return true;
+}
+
+function isValidPackPos(pos){
+    if(pos.x < 0 || pos.x > gameState.worldSize-1 || pos.y < 0 || pos.y > gameState.worldSize-1) return false;
+    if(getPackID(pos))return false;
     return true;
 }
 
@@ -445,8 +473,12 @@ function isPosIn(lib,pos){
 }
 
 function restartGame(){
-    for(id in gameState.objects){
-        gameState.objects[id].reset();
+    console.log('reset');
+    for(id in gameState.desks){
+        gameState.desks[id].reset();
+    }
+    for(id in gameState.backpacks){
+        gameState.backpacks[id].reset();
     }
     for(id in gameState.agents){
         gameState.agents[id].reset();
@@ -484,8 +516,8 @@ function pushDesk(Ppos,rot){
     }
     let id = getDeskId(pos);
     if(id && isValidDeskPos(newPos)){
-        gameState.objects[id].pos.x = newPos.x;
-        gameState.objects[id].pos.y = newPos.y;
+        gameState.desks[id].pos.x = newPos.x;
+        gameState.desks[id].pos.y = newPos.y;
     }
 }
 
@@ -512,11 +544,25 @@ function grab(id){
         //left
         pos2.x -= 1;
     }
-    let caseId = getCaseId(pos);
-    if(!caseId) caseId = getCaseId(pos2);
-    if(caseId){
-        gameState.players[id].heldItem = caseId;
+
+    let packID = gameState.players[id].heldItem;
+    if(packID){
+        if(isValidPackPos(pos2)){
+            gameState.players[id].heldItem = 0;
+            gameState.backpacks[packID].pos.x = pos2.x + 0.5;
+            gameState.backpacks[packID].pos.y = pos2.y + 0.5;
+            if(!getDeskId(pos2)){
+                gameState.backpacks[packID].spilled = true;
+            }
+            return;
+        }
     }
-    
+
+    packID = getPackID(pos);
+    if(!packID) packID = getPackID(pos2);
+    if(packID && gameState.backpacks[packID].spilled) return;
+    if(packID){
+        gameState.players[id].heldItem = packID;
+    }
 }
 

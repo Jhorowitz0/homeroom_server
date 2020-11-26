@@ -26,8 +26,9 @@ function draw(){
 	background(10);
 	if(gameState){
 		drawGrid();
+		drawDesks();
 		drawPlayers();
-		drawObjects();
+		drawBackpacks();
 		drawAgents();
 		if(socket.id in gameState.players){
 			// movePlayer();
@@ -89,7 +90,7 @@ function enterLobby(){
 				spawnPos.x += 0.5;
 				spawnPos.y += 0.5;
 				if(keyIsDown(80)){
-					socket.emit('case',spawnPos);
+					socket.emit('pack',spawnPos);
 					return;
 				}
 				if(keyIsDown(49)){
@@ -106,6 +107,7 @@ function enterLobby(){
 
 		keyPressed = ()=>{
 			if(keyCode == 67) socket.emit('clear');
+			if(keyCode == 18) socket.emit('restart');
 			if(keyCode == 219) socket.emit('resize',1);
 			if(keyCode == 221) socket.emit('resize',-1);
 		}
@@ -130,8 +132,8 @@ function isValidPlayerPos(pos){
 		if(dist < 0.4) return;
     }
 
-    for(i in gameState.objects){
-        let obj = gameState.objects[i];
+    for(i in gameState.desks){
+        let obj = gameState.desks[i];
         if(
             x > obj.pos.x && x < obj.pos.x + 1 &&
             y > obj.pos.y && y < obj.pos.y + 1
@@ -145,8 +147,8 @@ function isValidBlockPos(pos){
 	let y = pos.y+0.5;
 	if(x < 0.2 || x > gameState.worldSize-0.2) return false;
     if(y < 0.2 || y > gameState.worldSize-0.2) return false;
-    for(i in gameState.objects){
-        let obj = gameState.objects[i];
+    for(i in gameState.desks){
+        let obj = gameState.desks[i];
         if(
             x > obj.pos.x && x < obj.pos.x + 1 &&
             y > obj.pos.y && y < obj.pos.y + 1
@@ -228,19 +230,32 @@ function drawPlayers(){
 	}
 }
 
-function drawObjects(){
-	for(id in gameState.objects){
-		let obj = gameState.objects[id];
+function drawDesks(){
+	for(id in gameState.desks){
+		let obj = gameState.desks[id];
 		let scale = 1.05;
 		noStroke();
 		fill(100);
-		if(obj.type == 'case'){
-			fill(255,0,255);
-			scale = 0.3;
-			drawRectOnGrid(obj.pos.x,obj.pos.y,scale);
-			continue;
-		}
 		drawRectOnGrid(obj.pos.x + 0.5,obj.pos.y + 0.5,scale);
+	}
+}
+
+function drawBackpacks(){
+	for(id in gameState.backpacks){
+		let pack = gameState.backpacks[id];
+		let scale = 0.3;
+		noStroke();
+		fill(255,0,255);
+		if(pack.spilled){
+			drawRectOnGrid(pack.pos.x - 0.2,pack.pos.y + 0.3,0.1);
+			drawRectOnGrid(pack.pos.x + 0.2,pack.pos.y + 0.35,0.15);
+			drawRectOnGrid(pack.pos.x - 0.2,pack.pos.y - 0.2,0.1);
+			drawRectOnGrid(pack.pos.x,pack.pos.y - 0.3,0.1);
+			drawRectOnGrid(pack.pos.x + 0.33,pack.pos.y - 0.3,0.1);
+			drawRectOnGrid(pack.pos.x + 0.1,pack.pos.y - 0.1,0.2);
+			drawRectOnGrid(pack.pos.x - 0.2,pack.pos.y + 0.2,0.4);
+		}
+		else drawRectOnGrid(pack.pos.x,pack.pos.y,scale);
 	}
 }
 
@@ -250,12 +265,6 @@ function drawAgents(){
 		noStroke();
 		fill(30,20,255);
 		drawEllipseOnGrid(agent.pos.x,agent.pos.y,0.7);
-		// fill(255,0,0);
-		// drawEllipseOnGrid(agent.dest.x,agent.dest.y,0.3);
-		// for(id in agent.prevPos){
-		// 	fill(100);
-		// 	drawEllipseOnGrid(agent.prevPos[id].x,agent.prevPos[id].y,0.3);
-		// }
 		let pos = getCanvasPos(agent.pos.x,agent.pos.y);
 		push();
 		translate(pos.x,pos.y);
