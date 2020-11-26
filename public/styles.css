@@ -2,6 +2,8 @@ body {
     background-color: black;
     margin: 0;
     overflow: hidden; /* Hide scrollbars */
+    display: flex;
+    color: white;
 }
 
 .p5Canvas{

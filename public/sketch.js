@@ -41,6 +41,40 @@ function mousePressed(){
 }
 
 function spawn(pos){
+	let controls = document.getElementById("controls");
+	if(controls)controls.remove();
+
+	var div = document.createElement("div");
+	div.setAttribute("id", "controls");
+
+	var para = document.createElement("h1");
+	var node = document.createTextNode("Controls:");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("Arrow Keys:   move");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("Space:  pick up/place");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("Space(hold):  push desk");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("T: become target");
+	para.appendChild(node);
+	div.appendChild(para);
+	
+	element = document.getElementById("body");
+	element.appendChild(div);
+
 	let sketch = (()=>{
 		mousePressed = ()=>{
 		}
@@ -76,9 +110,62 @@ function spawn(pos){
 
     let myp5 = new p5(sketch);
 	socket.emit('spawn',pos);
+
+	let canvas = document.getElementById("defaultCanvas1");
+	canvas.remove();
 }
 
 function enterLobby(){
+	let controls = document.getElementById("controls");
+	if(controls)controls.remove();
+
+	var div = document.createElement("div");
+	div.setAttribute("id", "controls");
+
+	var para = document.createElement("h1");
+	var node = document.createTextNode("Controls:");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("Click: spawn");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("C: clear board");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("[ or ]: resize board (clears it)");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("D: spawn desk");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("A: spawn agent");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("G: spawn agent that guards a point");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("B: spawn backpack");
+	para.appendChild(node);
+	div.appendChild(para);
+	
+	element = document.getElementById("body");
+	element.appendChild(div);
+
+
 	let sketch = (()=>{
 		mousePressed = ()=>{
 			if(gameState){
@@ -89,15 +176,15 @@ function enterLobby(){
 				}
 				spawnPos.x += 0.5;
 				spawnPos.y += 0.5;
-				if(keyIsDown(80)){
+				if(keyIsDown(66)){
 					socket.emit('pack',spawnPos);
 					return;
 				}
-				if(keyIsDown(49)){
+				if(keyIsDown(65)){
 					socket.emit('agent',{type: 'chase',pos: spawnPos});
 					return;
 				}
-				if(keyIsDown(50)){
+				if(keyIsDown(71)){
 					socket.emit('agent',{type: 'guard',pos: spawnPos});
 					return;
 				}
@@ -113,6 +200,9 @@ function enterLobby(){
 		}
 	});
 	let myp5 = new p5(sketch);
+
+	let canvas = document.getElementById("defaultCanvas1");
+	canvas.remove();
 }
 
 function getDistance(pos1,pos2){
@@ -291,12 +381,12 @@ function drawLobby(){
 		if(isValidBlockPos(mousePos))stroke(0,255,0);
 		drawRectOnGrid(mousePos.x+0.5,mousePos.y+0.5,0.9);
 	}
-	else if(keyIsDown(80)){
+	else if(keyIsDown(66)){
 		stroke(255,0,0);
 		if(isValidBlockPos(mousePos))stroke(0,255,0);
 		drawRectOnGrid(mousePos.x+0.5,mousePos.y+0.5,0.3);
 	}
-	else if(keyIsDown(49) || keyIsDown(50)){
+	else if(keyIsDown(65) || keyIsDown(71)){
 		stroke(255,0,0);
 		if(isValidBlockPos(mousePos))stroke(0,255,0);
 		drawEllipseOnGrid(mousePos.x+0.5,mousePos.y+0.5,0.8);
