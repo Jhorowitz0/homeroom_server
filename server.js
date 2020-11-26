@@ -1,6 +1,4 @@
-//check README.md
-
-//create a web application that uses the express frameworks and socket.io to communicate via http (the web protocol)
+//-----------------------------------------IMPORTS
 const { throws } = require('assert');
 const { Console } = require('console');
 var express = require('express');
@@ -10,11 +8,6 @@ var http = require('http').createServer(app);
 var io = require('socket.io')(http);
 // io.sockets.emit('thing');
 app.use(express.static('public'));
-var UPDATE_TIME = 50;
-var PLAYER_SPEED = 0.15;
-var TARGET_SPEED = 0.1;
-var AGENT_SPEED = 0.11;
-
 //------------------------CLASSES---------------------------
 class Player{
     constructor(x,y,id){
@@ -250,6 +243,107 @@ class Agent{
     }
 }
 
+//--------------------------------HELPER FUNCTIONS-------------------------------------------
+
+//returns distance between two points
+function getDistance(pos1,pos2){
+    let dx = pos2.x - pos1.x;
+    let dy = pos2.y - pos1.y;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+//returns true if the positions are equal
+function isPosEqual(pos1,pos2){
+    return(pos1.x == pos2.x && pos1.y == pos2.y);
+}
+
+//returns true if the position exists within given library
+function isPosIn(lib,pos){
+    for(id in lib){
+        if(isPosEqual(lib[id],pos))return true;
+    }
+    return false;
+}
+
+//if there exists a desk in position, return the ID of desk, otherwise return 0
+function getDeskId(pos){
+    for(id in gameState.desks){
+        let desk = gameState.desks[id];
+        if(desk.pos.x == pos.x && desk.pos.y == pos.y)return id;
+    }
+    return 0;
+}
+
+//if there exists a pack in position, return the ID of pack, otherwise return 0
+function getPackID(pos){
+    for(id in gameState.backpacks){
+        let pack = gameState.backpacks[id];
+        let packPos = {
+            x: Math.floor(pack.pos.x),
+            y: Math.floor(pack.pos.y)
+        }
+        let rPos = {
+            x: Math.floor(pos.x),
+            y: Math.floor(pos.y),
+        }
+        if(packPos.x == rPos.x && packPos.y == rPos.y)return id;
+    }
+    return 0;
+}
+
+
+//returns true if the given point is a valid position for the player id to move to
+function isValidPlayerPos(x,y,id){
+    if(x < 0.2 || x > gameState.worldSize-0.2) return false;
+    if(y < 0.2 || y > gameState.worldSize-0.2) return false;
+
+    for(i in gameState.players){
+        if(i == id)continue;
+        else{
+            let dist = getDistance(gameState.players[i].pos,{x:x,y:y});
+            if(dist < 0.4) return;
+        }
+    }
+
+    for(i in gameState.desks){
+        let obj = gameState.desks[i];
+        if(
+            x+0.2 > obj.pos.x && x-0.2 < obj.pos.x + 1 &&
+            y+0.2 > obj.pos.y && y-0.2 < obj.pos.y + 1
+        ) return false;
+    }
+    return true;
+}
+
+//returns true if a desk can be placed in the given position
+function isValidDeskPos(pos){
+    if(pos.x < 0 || pos.x > gameState.worldSize-1 || pos.y < 0 || pos.y > gameState.worldSize-1) return false;
+    if(getDeskId(pos)) return false;
+    if(getPackID(pos)) return false;
+    return true;
+}
+
+//returns true if a pack can be placed in the given position
+function isValidPackPos(pos){
+    if(pos.x < 0 || pos.x > gameState.worldSize-1 || pos.y < 0 || pos.y > gameState.worldSize-1) return false;
+    if(getPackID(pos))return false;
+    return true;
+}
+
+//returns true if an agent can be placed in the given position
+function isValidAgentPos(pos){
+    if(pos.x < 0 || pos.x > gameState.worldSize || pos.y < 0 || pos.y > gameState.worldSize) return false;
+    if(getDeskId({x:Math.floor(pos.x),y:Math.floor(pos.y)})) return false;
+    return true;
+}
+
+
+//--------------------------------GLOBAL VARIABLES---------------------------------------------
+var UPDATE_TIME = 50;
+var PLAYER_SPEED = 0.15;
+var TARGET_SPEED = 0.1;
+var AGENT_SPEED = 0.11;
+
 var gameState = {
     worldSize: 9,
     players: {},
@@ -260,8 +354,28 @@ var gameState = {
     doorPos: {x:0,y:0}
 }
 
+//----------------------------------World Events-----------------------------------------------
 
-//when a client connects
+//resets everything to its starting position 
+function restartGame(){
+    for(id in gameState.desks){
+        gameState.desks[id].reset();
+    }
+    for(id in gameState.backpacks){
+        gameState.backpacks[id].reset();
+    }
+    for(id in gameState.agents){
+        gameState.agents[id].reset();
+    }
+    for(id in gameState.players){
+        gameState.players[id].reset();
+    }
+    gameState.targetID = 0;
+}
+
+
+
+//------------------------------------------------Socket Interactions-----------------------------------
 io.on('connection', function (socket) {
     console.log('user connected...');
 
@@ -398,113 +512,6 @@ setInterval(()=>{
 http.listen(3000, function () {
     console.log('listening on *:3000');
 });
-
-function shortAngleDist(a0,a1) {
-    var max = Math.PI*2;
-    var da = (a1 - a0) % max;
-    return 2*da % max - da;
-}
-
-function lerp(start,end,value){
-    return start + shortAngleDist(start,end)*value;
-}
-
-function getDistance(pos1,pos2){
-    let dx = pos2.x - pos1.x;
-    let dy = pos2.y - pos1.y;
-    return Math.sqrt(dx * dx + dy * dy);
-}
-
-function isValidPlayerPos(x,y,id){
-    if(x < 0.2 || x > gameState.worldSize-0.2) return false;
-    if(y < 0.2 || y > gameState.worldSize-0.2) return false;
-
-    for(i in gameState.players){
-        if(i == id)continue;
-        else{
-            let dist = getDistance(gameState.players[i].pos,{x:x,y:y});
-            if(dist < 0.4) return;
-        }
-    }
-
-    for(i in gameState.desks){
-        let obj = gameState.desks[i];
-        if(
-            x+0.2 > obj.pos.x && x-0.2 < obj.pos.x + 1 &&
-            y+0.2 > obj.pos.y && y-0.2 < obj.pos.y + 1
-        ) return false;
-    }
-    return true;
-}
-
-function getDeskId(pos){
-    for(id in gameState.desks){
-        let desk = gameState.desks[id];
-        if(desk.pos.x == pos.x && desk.pos.y == pos.y)return id;
-    }
-}
-
-function getPackID(pos){
-    for(id in gameState.backpacks){
-        let pack = gameState.backpacks[id];
-        let packPos = {
-            x: Math.floor(pack.pos.x),
-            y: Math.floor(pack.pos.y)
-        }
-        let rPos = {
-            x: Math.floor(pos.x),
-            y: Math.floor(pos.y),
-        }
-        if(packPos.x == rPos.x && packPos.y == rPos.y)return id;
-    }
-}
-
-
-function isValidDeskPos(pos){
-    if(pos.x < 0 || pos.x > gameState.worldSize-1 || pos.y < 0 || pos.y > gameState.worldSize-1) return false;
-    if(getDeskId(pos)) return false;
-    if(getPackID(pos)) return false;
-    return true;
-}
-
-function isValidPackPos(pos){
-    if(pos.x < 0 || pos.x > gameState.worldSize-1 || pos.y < 0 || pos.y > gameState.worldSize-1) return false;
-    if(getPackID(pos))return false;
-    return true;
-}
-
-function isValidAgentPos(pos){
-    if(pos.x < 0 || pos.x > gameState.worldSize || pos.y < 0 || pos.y > gameState.worldSize) return false;
-    if(getDeskId({x:Math.floor(pos.x),y:Math.floor(pos.y)})) return false;
-    return true;
-}
-
-function isPosEqual(pos1,pos2){
-    return(pos1.x == pos2.x && pos1.y == pos2.y);
-}
-
-function isPosIn(lib,pos){
-    for(id in lib){
-        if(isPosEqual(lib[id],pos))return true;
-    }
-    return false;
-}
-
-function restartGame(){
-    for(id in gameState.desks){
-        gameState.desks[id].reset();
-    }
-    for(id in gameState.backpacks){
-        gameState.backpacks[id].reset();
-    }
-    for(id in gameState.agents){
-        gameState.agents[id].reset();
-    }
-    for(id in gameState.players){
-        gameState.players[id].reset();
-    }
-    gameState.targetID = 0;
-}
 
 function pushDesk(Ppos,rot){
     let pos = {x:Ppos.x,y:Ppos.y};
