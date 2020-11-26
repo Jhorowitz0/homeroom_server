@@ -257,6 +257,7 @@ var gameState = {
     agents: {},
     backpacks: {},
     targetID: 0,
+    doorPos: {x:0,y:0}
 }
 
 
@@ -276,6 +277,11 @@ io.on('connection', function (socket) {
         if(socket.id in gameState.players)gameState.players[socket.id].update(angle);
     });
 
+    socket.on('door', function(pos){
+        gameState.doorPos.x = pos.x;
+        gameState.doorPos.y = pos.y;
+    });
+
     socket.on('target', () => {
         if(!(socket.id in gameState.players)) return;
         if(socket.id == gameState.targetID){
@@ -283,7 +289,7 @@ io.on('connection', function (socket) {
             gameState.players[socket.id].maxSpeed = PLAYER_SPEED;
         }
         else{
-            if(gameState.players[gameState.targetID])gameState.players[targetID].maxSpeed = PLAYER_SPEED;
+            if(gameState.players[gameState.targetID]) gameState.players[gameState.targetID].maxSpeed = PLAYER_SPEED;
             gameState.targetID = socket.id;
             gameState.players[socket.id].maxSpeed = TARGET_SPEED;
         }
@@ -362,11 +368,23 @@ io.on('connection', function (socket) {
         console.log('user disconnected');
         delete gameState.players[socket.id];
     });
+
+    socket.on('leave', function(){
+        console.log('user despawned');
+        delete gameState.players[socket.id];
+        socket.emit('kicked');
+    });
 });
 
 setInterval(()=>{
     for(id in gameState.players){
         gameState.players[id].move();
+        if(id == gameState.targetID){
+            let pos = gameState.players[id].pos;
+            if(Math.floor(pos.x) == gameState.doorPos.x && Math.floor(pos.y) == gameState.doorPos.y){
+                restartGame();
+            }
+        } 
     }
     for(h in gameState.agents){
         gameState.agents[h].update();
@@ -473,7 +491,6 @@ function isPosIn(lib,pos){
 }
 
 function restartGame(){
-    console.log('reset');
     for(id in gameState.desks){
         gameState.desks[id].reset();
     }

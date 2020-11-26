@@ -27,6 +27,7 @@ function draw(){
 	if(gameState){
 		drawGrid();
 		drawDesks();
+		drawDoor();
 		drawPlayers();
 		drawBackpacks();
 		drawAgents();
@@ -71,6 +72,11 @@ function spawn(pos){
 	node = document.createTextNode("T: become target");
 	para.appendChild(node);
 	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("L: return to lobby");
+	para.appendChild(node);
+	div.appendChild(para);
 	
 	element = document.getElementById("body");
 	element.appendChild(div);
@@ -81,6 +87,7 @@ function spawn(pos){
 
 		keyPressed = ()=>{
 			if(keyCode == 84) socket.emit('target');
+			if(keyCode == 76) socket.emit('leave');
 			else if(keyCode == 32) socket.emit('action',true);
 			else movePlayer();
 		}
@@ -128,11 +135,6 @@ function enterLobby(){
 	div.appendChild(para);
 
 	para = document.createElement("p");
-	node = document.createTextNode("Click: spawn");
-	para.appendChild(node);
-	div.appendChild(para);
-
-	para = document.createElement("p");
 	node = document.createTextNode("C: clear board");
 	para.appendChild(node);
 	div.appendChild(para);
@@ -161,6 +163,16 @@ function enterLobby(){
 	node = document.createTextNode("B: spawn backpack");
 	para.appendChild(node);
 	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("E: move exit");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("Click: spawn");
+	para.appendChild(node);
+	div.appendChild(para);
 	
 	element = document.getElementById("body");
 	element.appendChild(div);
@@ -172,6 +184,11 @@ function enterLobby(){
 				let spawnPos = getGridPos(mouseX,mouseY);
 				if(keyIsDown(68)){
 					socket.emit('desk',spawnPos);
+					return;
+				}
+				if(keyIsDown(69)){
+					socket.emit('door',spawnPos);
+					console.log('door!');
 					return;
 				}
 				spawnPos.x += 0.5;
@@ -297,6 +314,13 @@ function drawTarget(x,y,s){
 	noStroke();
 }
 
+function drawDoor(){
+	noStroke();
+	fill(255,0,0);
+	drawRectOnGrid(gameState.doorPos.x+0.5,gameState.doorPos.y+0.5,0.9);
+	noStroke();
+}
+
 function drawPlayers(){
 	let t = gameState.players[gameState.targetID];
 	if(t)drawTarget(t.pos.x,t.pos.y,0.65);
@@ -376,7 +400,7 @@ function drawLobby(){
 	noFill();
 	let mousePos = getGridPos(mouseX,mouseY);
 	strokeWeight(5);
-	if(keyIsDown(68)){
+	if(keyIsDown(68) || keyIsDown(69)){
 		stroke(255,0,0);
 		if(isValidBlockPos(mousePos))stroke(0,255,0);
 		drawRectOnGrid(mousePos.x+0.5,mousePos.y+0.5,0.9);
