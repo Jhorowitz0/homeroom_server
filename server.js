@@ -373,6 +373,86 @@ function restartGame(){
     gameState.targetID = 0;
 }
 
+//given a starting position and a rotation, attempt to push a desk
+function pushDesk(Ppos,rot){
+    let pos = {x:Ppos.x,y:Ppos.y};
+    pos.x = Math.floor(Ppos.x);
+    pos.y = Math.floor(Ppos.y);
+    let newPos = {x:pos.x,y:pos.y};
+    if(rot < 0.5){
+        //up
+        pos.y -= 1;
+        newPos.y -= 2;
+    }
+    else if(rot < 2.4){
+        //right
+        pos.x += 1;
+        newPos.x += 2;
+    }
+    else if(rot < 3.2){
+        //down
+        pos.y += 1;
+        newPos.y += 2;
+    }
+    else{
+        //left
+        pos.x -= 1;
+        newPos.x -= 2;
+    }
+    let id = getDeskId(pos);
+    if(id && isValidDeskPos(newPos)){
+        gameState.desks[id].pos.x = newPos.x;
+        gameState.desks[id].pos.y = newPos.y;
+    }
+}
+
+//given a player id, grab or place a backpack
+function grab(id){
+    let pos = {
+        x: Math.floor(gameState.players[id].pos.x),
+        y: Math.floor(gameState.players[id].pos.y)
+    }
+    let rot = gameState.players[id].rot;
+    let pos2 = {x:pos.x,y:pos.y};
+    if(rot < 0.5){
+        //up
+        pos2.y -= 1;
+    }
+    else if(rot < 2.4){
+        //right
+        pos2.x += 1;
+    }
+    else if(rot < 3.2){
+        //down
+        pos2.y += 1;
+    }
+    else{
+        //left
+        pos2.x -= 1;
+    }
+
+    let packID = gameState.players[id].heldItem;
+    if(packID){
+        if(isValidPackPos(pos2)){
+            gameState.players[id].heldItem = 0;
+            gameState.backpacks[packID].pos.x = pos2.x + 0.5;
+            gameState.backpacks[packID].pos.y = pos2.y + 0.5;
+            if(!getDeskId(pos2)){
+                gameState.backpacks[packID].spilled = true;
+            }
+            return;
+        }
+    }
+
+    packID = getPackID(pos);
+    if(!packID) packID = getPackID(pos2);
+    if(packID && gameState.backpacks[packID].spilled) return;
+    if(packID){
+        gameState.players[id].heldItem = packID;
+    }
+}
+
+
 
 
 //------------------------------------------------Socket Interactions-----------------------------------
@@ -513,80 +593,5 @@ http.listen(3000, function () {
     console.log('listening on *:3000');
 });
 
-function pushDesk(Ppos,rot){
-    let pos = {x:Ppos.x,y:Ppos.y};
-    pos.x = Math.floor(Ppos.x);
-    pos.y = Math.floor(Ppos.y);
-    let newPos = {x:pos.x,y:pos.y};
-    if(rot < 0.5){
-        //up
-        pos.y -= 1;
-        newPos.y -= 2;
-    }
-    else if(rot < 2.4){
-        //right
-        pos.x += 1;
-        newPos.x += 2;
-    }
-    else if(rot < 3.2){
-        //down
-        pos.y += 1;
-        newPos.y += 2;
-    }
-    else{
-        //left
-        pos.x -= 1;
-        newPos.x -= 2;
-    }
-    let id = getDeskId(pos);
-    if(id && isValidDeskPos(newPos)){
-        gameState.desks[id].pos.x = newPos.x;
-        gameState.desks[id].pos.y = newPos.y;
-    }
-}
 
-function grab(id){
-    let pos = {
-        x: Math.floor(gameState.players[id].pos.x),
-        y: Math.floor(gameState.players[id].pos.y)
-    }
-    let rot = gameState.players[id].rot;
-    let pos2 = {x:pos.x,y:pos.y};
-    if(rot < 0.5){
-        //up
-        pos2.y -= 1;
-    }
-    else if(rot < 2.4){
-        //right
-        pos2.x += 1;
-    }
-    else if(rot < 3.2){
-        //down
-        pos2.y += 1;
-    }
-    else{
-        //left
-        pos2.x -= 1;
-    }
-
-    let packID = gameState.players[id].heldItem;
-    if(packID){
-        if(isValidPackPos(pos2)){
-            gameState.players[id].heldItem = 0;
-            gameState.backpacks[packID].pos.x = pos2.x + 0.5;
-            gameState.backpacks[packID].pos.y = pos2.y + 0.5;
-            if(!getDeskId(pos2)){
-                gameState.backpacks[packID].spilled = true;
-            }
-            return;
-        }
-    }
-
-    packID = getPackID(pos);
-    if(!packID) packID = getPackID(pos2);
-    if(packID && gameState.backpacks[packID].spilled) return;
-    if(packID){
-        gameState.players[id].heldItem = packID;
-    }
-}
 
