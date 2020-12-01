@@ -14,11 +14,7 @@ function setup() {
 		gameState = newState;
 	});
 
-	socket.on('kicked', () => {
-		enterLobby();
-	});
-
-	enterLobby();
+	spawn();
 }
 
 function draw(){

@@ -312,12 +312,11 @@ function isValidPlayerPos(x,y,id){
         }
     }
 
-    for(i in gameState.desks){
-        let obj = gameState.desks[i];
-        if(
-            x+0.2 > obj.pos.x && x-0.2 < obj.pos.x + 1 &&
-            y+0.2 > obj.pos.y && y-0.2 < obj.pos.y + 1
-        ) return false;
+    if(getDeskId({
+        x: Math.floor(x),
+        y: Math.floor(y)
+    })){
+        return false;
     }
     return true;
 }
@@ -350,15 +349,42 @@ var UPDATE_TIME = 50;
 var PLAYER_SPEED = 0.15;
 var TARGET_SPEED = 0.1;
 var AGENT_SPEED = 0.11;
+var LOBBY_TIME = 100;
 
 var gameState = {
     worldSize: 9,
     players: {},
-    desks: {},
+    desks: {
+        1: new Desk(1,3),
+        2: new Desk(1,4),
+        3: new Desk(1,5),
+        4: new Desk(3,1),
+        5: new Desk(3,2),
+        6: new Desk(3,3),
+        7: new Desk(5,1),
+        8: new Desk(5,2),
+        9: new Desk(5,3),
+        10: new Desk(7,1),
+        11: new Desk(7,2),
+        12: new Desk(7,3),
+        13: new Desk(3,5),
+        14: new Desk(3,6),
+        15: new Desk(3,7),
+        16: new Desk(5,5),
+        17: new Desk(5,6),
+        18: new Desk(5,7),
+        19: new Desk(7,5),
+        20: new Desk(7,6),
+        21: new Desk(7,7),
+    },
     agents: {},
-    backpacks: {},
+    backpacks: {
+        0: new Backpack(5.5,2.5),
+        1: new Backpack(7.5,5.5)
+    },
     targetID: 0,
-    doorPos: {x:0,y:0}
+    doorPos: {x:0,y:0},
+    timeTillStart: -1,
 }
 
 //----------------------------------World Events-----------------------------------------------
@@ -371,12 +397,12 @@ function restartGame(){
     for(id in gameState.backpacks){
         gameState.backpacks[id].reset();
     }
-    for(id in gameState.agents){
-        gameState.agents[id].reset();
-    }
+    gameState.agents = {};
     for(id in gameState.players){
         gameState.players[id].reset();
     }
+    gameState.timeTillStart = LOBBY_TIME;
+    gameState.players[gameState.targetID].maxVel = PLAYER_SPEED;
     gameState.targetID = 0;
 }
 
@@ -493,111 +519,165 @@ io.on('connection', function (socket) {
 
     //this is sent to the client
     socket.emit('updateState', gameState);
-
-    socket.on('spawn', function(pos){
-        console.log('user spawned');
+    let playerCount = 0;
+    for(id in gameState.players){
+        playerCount++;
+    }
+    if(playerCount < 4){
+        let pos = {
+            x: Math.random() * gameState.worldSize,
+            y: Math.random() * gameState.worldSize,
+        }
+        while(!isValidPlayerPos(pos.x,pos.y,socket.id)){
+            pos = {
+                x: Math.random() * gameState.worldSize,
+                y: Math.random() * gameState.worldSize,
+            }
+        }
         gameState.players[socket.id] = new Player(pos.x,pos.y,socket.id);
-    });
+        playerCount ++;
+        if(playerCount == 4) gameState.timeTillStart = LOBBY_TIME;
+    }
+
+    // socket.on('spawn', function(pos){
+    //     console.log('user spawned');
+    //     gameState.players[socket.id] = new Player(pos.x,pos.y,socket.id);
+    // });
 
     socket.on('update', function(vel){
         if(socket.id in gameState.players)gameState.players[socket.id].update(vel);
     });
 
-    socket.on('door', function(pos){
-        gameState.doorPos.x = pos.x;
-        gameState.doorPos.y = pos.y;
-    });
+    // socket.on('door', function(pos){
+    //     gameState.doorPos.x = pos.x;
+    //     gameState.doorPos.y = pos.y;
+    // });
 
-    socket.on('target', () => {
-        if(!(socket.id in gameState.players)) return;
-        if(socket.id == gameState.targetID){
-            gameState.targetID = 0;
-            gameState.players[socket.id].maxSpeed = PLAYER_SPEED;
-        }
-        else{
-            if(gameState.players[gameState.targetID]) gameState.players[gameState.targetID].maxSpeed = PLAYER_SPEED;
-            gameState.targetID = socket.id;
-            gameState.players[socket.id].maxSpeed = TARGET_SPEED;
-        }
-    });
+    // socket.on('target', () => {
+    //     if(!(socket.id in gameState.players)) return;
+    //     if(socket.id == gameState.targetID){
+    //         gameState.targetID = 0;
+    //         gameState.players[socket.id].maxSpeed = PLAYER_SPEED;
+    //     }
+    //     else{
+    //         if(gameState.players[gameState.targetID]) gameState.players[gameState.targetID].maxSpeed = PLAYER_SPEED;
+    //         gameState.targetID = socket.id;
+    //         gameState.players[socket.id].maxSpeed = TARGET_SPEED;
+    //     }
+    // });
 
     socket.on('action',() => {
+        let playerCount = 0;
+        for(id in gameState.players){
+            playerCount++;
+        }
+        if(gameState.targetID == socket.id
+            || gameState.timeTillStart > 0
+            || playerCount < 4) return;
         if(gameState.players[socket.id]) gameState.players[socket.id].action();
     });
 
-    socket.on('clear', ()=>{
-        gameState.players = {};
-        gameState.desks = {};
-        gameState.agents = {};
-        gameState.backpacks = {};
-        io.sockets.emit('kicked');
-    });
+    // socket.on('clear', ()=>{
+    //     gameState.players = {};
+    //     gameState.desks = {};
+    //     gameState.agents = {};
+    //     gameState.backpacks = {};
+    //     io.sockets.emit('kicked');
+    // });
 
-    socket.on('restart', restartGame);
+    // socket.on('restart', restartGame);
 
-    socket.on('resize',delta=>{
-        gameState.players = {};
-        gameState.desks = {};
-        gameState.agents = {};
-        gameState.backpacks = {};
-        io.sockets.emit('kicked');
-        gameState.worldSize -= delta;
-    });
+    // socket.on('resize',delta=>{
+    //     gameState.players = {};
+    //     gameState.desks = {};
+    //     gameState.agents = {};
+    //     gameState.backpacks = {};
+    //     io.sockets.emit('kicked');
+    //     gameState.worldSize -= delta;
+    // });
 
-    socket.on('desk', pos=>{
-        for(id in gameState.desks){
-            let desk = gameState.desks[id];
-            if(pos.x == desk.pos.x && pos.y == desk.pos.y){                  
-                    delete gameState.desks[id];
-                    return;
-            }
-        }
+    // socket.on('desk', pos=>{
+    //     for(id in gameState.desks){
+    //         let desk = gameState.desks[id];
+    //         if(pos.x == desk.pos.x && pos.y == desk.pos.y){                  
+    //                 delete gameState.desks[id];
+    //                 return;
+    //         }
+    //     }
 
-        gameState.desks[Math.random()] = new Desk(pos.x,pos.y);
-    });
+    //     gameState.desks[Math.random()] = new Desk(pos.x,pos.y);
+    // });
 
-    socket.on('agent', data=>{
-        for(id in gameState.agents){
-            if(Math.floor(gameState.agents[id].pos.x) == Math.floor(data.pos.x)
-             && Math.floor(gameState.agents[id].pos.y) == Math.floor(data.pos.y)){
-                 delete gameState.agents[id];
-                 return;
-             }
-        }
-        if(isValidAgentPos(data.pos)){
-            gameState.agents[Math.random()] = new Agent(data.pos.x,data.pos.y,data.type);
-        }
-    })
+    // socket.on('agent', data=>{
+    //     for(id in gameState.agents){
+    //         if(Math.floor(gameState.agents[id].pos.x) == Math.floor(data.pos.x)
+    //          && Math.floor(gameState.agents[id].pos.y) == Math.floor(data.pos.y)){
+    //              delete gameState.agents[id];
+    //              return;
+    //          }
+    //     }
+    //     if(isValidAgentPos(data.pos)){
+    //         gameState.agents[Math.random()] = new Agent(data.pos.x,data.pos.y,data.type);
+    //     }
+    // })
 
-    socket.on('pack',pos=>{
-        for(id in gameState.objects){
-            let pack = gameState.backpacks[id];
-                if(pos.x == obj.pos.x && pos.y == obj.pos.y){
-                    delete gameState.backpacks[id];
-                    return;
-                }
-        }
+    // socket.on('pack',pos=>{
+    //     for(id in gameState.objects){
+    //         let pack = gameState.backpacks[id];
+    //             if(pos.x == obj.pos.x && pos.y == obj.pos.y){
+    //                 delete gameState.backpacks[id];
+    //                 return;
+    //             }
+    //     }
 
-        gameState.backpacks[Math.random()] = new Backpack(pos.x,pos.y);
-    });
+    //     gameState.backpacks[Math.random()] = new Backpack(pos.x,pos.y);
+    // });
 
     socket.on('disconnect', function(){
         console.log('user disconnected');
         delete gameState.players[socket.id];
     });
 
-    socket.on('leave', function(){
-        console.log('user despawned');
-        delete gameState.players[socket.id];
-        socket.emit('kicked');
-    });
+    // socket.on('leave', function(){
+    //     console.log('user despawned');
+    //     delete gameState.players[socket.id];
+    //     socket.emit('kicked');
+    // });
 });
 
 
 //gamestate update loop
 setInterval(()=>{
+
+
+    if(gameState.timeTillStart > 0){
+        gameState.timeTillStart--;
+    }
+
+    let playerCount = 0;
+    for(id in gameState.players){
+        playerCount++;
+    }
+
+    if(gameState.timeTillStart == 0){
+        gameState.timeTillStart = -1;
+        gameState.agents[1] = new Agent(0.5,0.5,'chase');
+        if(playerCount == 4){
+            let targetID = Math.floor(Math.random() * playerCount);
+            for(id in gameState.players){
+                if(targetID == 0){
+                    gameState.targetID = id;
+                    gameState.players[gameState.targetID].maxVel = TARGET_SPEED;
+                }
+                targetID --;
+            }
+        }
+    }
+
+
     for(id in gameState.players){
         gameState.players[id].move();
+        if(gameState.timeTillStart > 0) continue;
         if(id == gameState.targetID){
             let pos = gameState.players[id].pos;
             if(Math.floor(pos.x) == gameState.doorPos.x && Math.floor(pos.y) == gameState.doorPos.y){
@@ -606,8 +686,8 @@ setInterval(()=>{
         } 
     }
     for(h in gameState.agents){
-        gameState.agents[h].update();
-        gameState.agents[h].move();
+        if(gameState.agents[h])gameState.agents[h].update();
+        if(gameState.agents[h])gameState.agents[h].move();
     }
     io.sockets.emit('state', gameState);
 }, UPDATE_TIME);
