@@ -32,7 +32,7 @@ function draw(){
 		drawBackpacks();
 		drawAgents();
 		if(socket.id in gameState.players){
-			// movePlayer();
+			movePlayer();
 		}
 		else drawLobby(); 
 	}
@@ -90,28 +90,6 @@ function spawn(pos){
 			if(keyCode == 76) socket.emit('leave');
 			else if(keyCode == 32) socket.emit('action',true);
 			else movePlayer();
-		}
-
-		keyReleased = ()=>{
-			if(!keyIsDown(32))socket.emit('action',false);
-
-			if(keyIsDown(37)){
-				movePlayer();
-				return;
-			}
-			else if(keyIsDown(38)){
-				movePlayer();
-				return;
-			}
-			else if(keyIsDown(39)){
-				movePlayer();
-				return;
-			}
-			else if(keyIsDown(40)){
-				movePlayer();
-				return;
-			}
-			socket.emit('update','stop');
 		}
 	});
 
@@ -231,19 +209,23 @@ function getDistance(pos1,pos2){
 function isValidPlayerPos(pos){
 	let x = pos.x;
 	let y = pos.y;
-	if(x < 0.2 || x > gameState.worldSize-0.2) return false;
+	let id = socket.id;
+    if(x < 0.2 || x > gameState.worldSize-0.2) return false;
     if(y < 0.2 || y > gameState.worldSize-0.2) return false;
 
     for(i in gameState.players){
-		let dist = getDistance(gameState.players[i].pos,{x:x,y:y});
-		if(dist < 0.4) return;
+        if(i == id)continue;
+        else{
+            let dist = getDistance(gameState.players[i].pos,{x:x,y:y});
+            if(dist < 0.4) return;
+        }
     }
 
     for(i in gameState.desks){
         let obj = gameState.desks[i];
         if(
-            x > obj.pos.x && x < obj.pos.x + 1 &&
-            y > obj.pos.y && y < obj.pos.y + 1
+            x+0.2 > obj.pos.x && x-0.2 < obj.pos.x + 1 &&
+            y+0.2 > obj.pos.y && y-0.2 < obj.pos.y + 1
         ) return false;
     }
     return true;
@@ -432,16 +414,39 @@ function drawTriangle(x,y,w,h){
 }
 
 function movePlayer(){
-	if(keyIsDown(38)){ //up
-		if(keyIsDown(37))socket.emit('update',7*(Math.PI/4));//up - left
-		else if(keyIsDown(39)) socket.emit('update', Math.PI/4);//up - right
-		else socket.emit('update', 0);//up
+	let vel = {x:0,y:0};
+	if(keyIsDown(37)) vel.x -= 1;
+	if(keyIsDown(38)) vel.y -= 1;
+	if(keyIsDown(39)) vel.x += 1;
+	if(keyIsDown(40)) vel.y += 1;
+	let player = gameState.players[socket.id];
+	if(vel.x == 0 && vel.y == 0){
+		socket.emit('update',{rot:player.rot,vel:0});
+		return;
 	}
-	else if(keyIsDown(40)){ //down
-		if(keyIsDown(37))socket.emit('update', 5*(Math.PI/4));//down - left
-		else if(keyIsDown(39))socket.emit('update', 3*(Math.PI/4));//down - right
-		else socket.emit('update', Math.PI);
+	let rot = Math.atan2(vel.y,vel.x) + (Math.PI/2);
+	let newPos = {
+		x: player.pos.x + (Math.sin(rot) * 0.2),
+		y: player.pos.y - (Math.cos(rot) * 0.2),
 	}
-	else if(keyIsDown(37))socket.emit('update', 3*(Math.PI/2));
-	else if(keyIsDown(39))socket.emit('update', (Math.PI/2));
+	if(isValidPlayerPos(player.pos) && !isValidPlayerPos(newPos)){
+		socket.emit('update',{rot:rot,vel:0});
+		return;
+	}
+	socket.emit('update', {rot:rot,vel:player.maxVel});
+	// if(keyIsDown(38)){ //up
+	// 	if(keyIsDown(37))vel = {x:-1,y:-1};//up - left
+	// 	else if(keyIsDown(39)) vel = {x:1,y:-1};;//up - right
+	// 	else socket.emit('update', {x:0,y:-1});//up
+	// }
+	// else if(keyIsDown(40)){ //down
+	// 	if(keyIsDown(37))socket.emit('update', {x:-1,y:1});//down - left
+	// 	else if(keyIsDown(39))socket.emit('update', {x:1,y:1});//down - right
+	// 	else socket.emit('update', {x:0,y:1});
+	// }
+	// else if(keyIsDown(37))socket.emit('update', {x:-1,y:0});//left
+	// else if(keyIsDown(39))socket.emit('update', {x:1,y:0});//right
+	// else{
+	// 	socket.emit('update',{x:0,y:0});//stopped
+	// }
 }

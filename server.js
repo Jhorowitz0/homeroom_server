@@ -13,8 +13,8 @@ class Player{
     constructor(x,y,id){
         this.startPos = { x:x, y:y };
         this.pos = { x:x, y:y };
-        this.speed = 0;
-        this.maxSpeed = PLAYER_SPEED;
+        this.vel = 0;
+        this.maxVel = PLAYER_SPEED;
         this.rot = 0;
         this.id = id;
         this.pushing = 0;
@@ -25,37 +25,44 @@ class Player{
         let x = this.startPos.x;
         let y = this.startPos.y;
         this.pos = { x:x, y:y };
-        this.speed = 0;
-        this.maxSpeed = PLAYER_SPEED;
+        this.vel = 0;
+        this.maxVel = PLAYER_SPEED;
         this.rot = 0;
         this.pushing = 0;
         this.heldItem = 0;
     }
 
-    update(angle){
-        if(angle == 'stop') this.speed = 0;
-        else{
-            this.rot = angle;
-            this.speed = this.maxSpeed;
+    update(data){
+        this.vel = data.vel;
+        this.rot = data.rot;
+    }
+
+    action(){
+        if(this.heldItem){
+            place(this);
+            return;
         }
+        grab(this);
+        if(this.heldItem == 0)this.pushing = 80;
     }
 
     move(){
-        if(this.pushing){
-            this.pushing -= 1;
+        let newPos = {
+            x: this.pos.x + (Math.sin(this.rot) * this.vel),
+            y: this.pos.y - (Math.cos(this.rot) * this.vel)
         }
-        let x = this.pos.x + Math.sin(this.rot) * this.speed;
-        let y = this.pos.y - Math.cos(this.rot) * this.speed;
-        if(gameState.backpacks[this.heldItem]) this.pushing = 0;
-        if(this.pushing && this.pushing == 1)pushDesk(this.pos,this.rot);
-        if(isValidPlayerPos(x,y,this.id)){
-            this.pos.x = x;
-            this.pos.y = y;
-            this.pushing = 0;
-            if(this.heldItem && gameState.backpacks[this.heldItem]){
-                gameState.backpacks[this.heldItem].pos.x = x;
-                gameState.backpacks[this.heldItem].pos.y = y;
-            }
+        if(!isValidPlayerPos(newPos.x,newPos.y,this.id)) return;
+        this.pos.x = newPos.x;
+        this.pos.y = newPos.y;
+        if(this.vel) this.pushing = 0;
+
+        if(this.pushing > 0){
+            this.pushing -= 1;
+            if(this.pushing == 1) pushDesk(this);
+        }
+        if(this.heldItem){
+            gameState.backpacks[this.heldItem].pos.x = this.pos.x;
+            gameState.backpacks[this.heldItem].pos.y = this.pos.y;
         }
     }
 }
@@ -374,11 +381,12 @@ function restartGame(){
 }
 
 //given a starting position and a rotation, attempt to push a desk
-function pushDesk(Ppos,rot){
-    let pos = {x:Ppos.x,y:Ppos.y};
-    pos.x = Math.floor(Ppos.x);
-    pos.y = Math.floor(Ppos.y);
+function pushDesk(player){
+    let pos = {x:0,y:0};
+    pos.x = Math.floor(player.pos.x);
+    pos.y = Math.floor(player.pos.y);
     let newPos = {x:pos.x,y:pos.y};
+    let rot = player.rot;
     if(rot < 0.5){
         //up
         pos.y -= 1;
@@ -399,6 +407,7 @@ function pushDesk(Ppos,rot){
         pos.x -= 1;
         newPos.x -= 2;
     }
+    if(getPackID(pos))return;
     let id = getDeskId(pos);
     if(id && isValidDeskPos(newPos)){
         gameState.desks[id].pos.x = newPos.x;
@@ -406,49 +415,72 @@ function pushDesk(Ppos,rot){
     }
 }
 
-//given a player id, grab or place a backpack
-function grab(id){
-    let pos = {
-        x: Math.floor(gameState.players[id].pos.x),
-        y: Math.floor(gameState.players[id].pos.y)
-    }
-    let rot = gameState.players[id].rot;
-    let pos2 = {x:pos.x,y:pos.y};
+//given a player id, attempt to grab the backpack in front of the player if their is one
+function grab(player){
+    let pos = {x:0,y:0};
+    pos.x = Math.floor(player.pos.x);
+    pos.y = Math.floor(player.pos.y);
+    let rot = player.rot;
     if(rot < 0.5){
         //up
-        pos2.y -= 1;
+        pos.y -= 1;
     }
     else if(rot < 2.4){
         //right
-        pos2.x += 1;
+        pos.x += 1;
     }
     else if(rot < 3.2){
         //down
-        pos2.y += 1;
+        pos.y += 1;
     }
     else{
         //left
-        pos2.x -= 1;
+        pos.x -= 1;
     }
-
-    let packID = gameState.players[id].heldItem;
-    if(packID){
-        if(isValidPackPos(pos2)){
-            gameState.players[id].heldItem = 0;
-            gameState.backpacks[packID].pos.x = pos2.x + 0.5;
-            gameState.backpacks[packID].pos.y = pos2.y + 0.5;
-            if(!getDeskId(pos2)){
-                gameState.backpacks[packID].spilled = true;
+    let id = getPackID(pos);
+    if(id){
+        if(gameState.backpacks[id].spilled)return;
+        for(i in gameState.players){
+            if(gameState.players[i].heldItem == id){
+                gameState.players[i].heldItem = 0;
             }
-            return;
         }
+        player.heldItem = id;
     }
+}
 
-    packID = getPackID(pos);
-    if(!packID) packID = getPackID(pos2);
-    if(packID && gameState.backpacks[packID].spilled) return;
-    if(packID){
-        gameState.players[id].heldItem = packID;
+function place(player){
+    let pos = {x:0,y:0};
+    pos.x = Math.floor(player.pos.x);
+    pos.y = Math.floor(player.pos.y);
+    let rot = player.rot;
+    if(rot < 0.5){
+        //up
+        pos.y -= 1;
+    }
+    else if(rot < 2.4){
+        //right
+        pos.x += 1;
+    }
+    else if(rot < 3.2){
+        //down
+        pos.y += 1;
+    }
+    else{
+        //left
+        pos.x -= 1;
+    }
+    if(getPackID(pos))return;
+    if(getDeskId(pos)){
+        gameState.backpacks[player.heldItem].pos.x = pos.x + 0.5;
+        gameState.backpacks[player.heldItem].pos.y = pos.y + 0.5;
+        player.heldItem = 0;
+    }
+    else if(isValidDeskPos(pos)){
+        gameState.backpacks[player.heldItem].spilled = true;
+        gameState.backpacks[player.heldItem].pos.x = pos.x + 0.5;
+        gameState.backpacks[player.heldItem].pos.y = pos.y + 0.5;
+        player.heldItem = 0;
     }
 }
 
@@ -467,8 +499,8 @@ io.on('connection', function (socket) {
         gameState.players[socket.id] = new Player(pos.x,pos.y,socket.id);
     });
 
-    socket.on('update', function(angle){
-        if(socket.id in gameState.players)gameState.players[socket.id].update(angle);
+    socket.on('update', function(vel){
+        if(socket.id in gameState.players)gameState.players[socket.id].update(vel);
     });
 
     socket.on('door', function(pos){
@@ -489,17 +521,8 @@ io.on('connection', function (socket) {
         }
     });
 
-    socket.on('action',isPushed => {
-        if(socket.id == gameState.targetID)return;
-        if(isPushed && socket.id in gameState.players){
-            if(!gameState.players[socket.id].heldItem){
-                gameState.players[socket.id].pushing = 60;
-            }
-            grab(socket.id);
-        }
-        else if (socket.id in gameState.players){
-            gameState.players[socket.id].pushing = 0;
-        }
+    socket.on('action',() => {
+        if(gameState.players[socket.id]) gameState.players[socket.id].action();
     });
 
     socket.on('clear', ()=>{
@@ -570,6 +593,8 @@ io.on('connection', function (socket) {
     });
 });
 
+
+//gamestate update loop
 setInterval(()=>{
     for(id in gameState.players){
         gameState.players[id].move();
