@@ -539,13 +539,22 @@ io.on('connection', function (socket) {
         if(playerCount == 4) gameState.timeTillStart = LOBBY_TIME;
     }
 
-    // socket.on('spawn', function(pos){
-    //     console.log('user spawned');
-    //     gameState.players[socket.id] = new Player(pos.x,pos.y,socket.id);
-    // });
-
-    socket.on('update', function(vel){
-        if(socket.id in gameState.players)gameState.players[socket.id].update(vel);
+    socket.on('update', function(controls){
+        if(gameState.players[socket.id]){
+            let deltaPos = {
+                x: 0,
+                y: 0
+            }
+            if(controls.left) deltaPos.x -= 1;
+            if(controls.right) deltaPos.x += 1;
+            if(controls.up) deltaPos.y -= 1;
+            if(controls.down) deltaPos.y += 1;
+            let data = {}
+            data.rot = Math.atan2(deltaPos.y, deltaPos.x) + Math.PI/2;
+            data.vel = 1 * gameState.players[socket.id].maxVel;
+            if(deltaPos.x == 0 && deltaPos.y == 0) data.vel = 0;
+            gameState.players[socket.id].update(data);
+        }
     });
 
     // socket.on('door', function(pos){

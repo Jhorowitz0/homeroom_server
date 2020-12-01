@@ -410,39 +410,10 @@ function drawTriangle(x,y,w,h){
 }
 
 function movePlayer(){
-	let vel = {x:0,y:0};
-	if(keyIsDown(37)) vel.x -= 1;
-	if(keyIsDown(38)) vel.y -= 1;
-	if(keyIsDown(39)) vel.x += 1;
-	if(keyIsDown(40)) vel.y += 1;
-	let player = gameState.players[socket.id];
-	if(vel.x == 0 && vel.y == 0){
-		socket.emit('update',{rot:player.rot,vel:0});
-		return;
-	}
-	let rot = Math.atan2(vel.y,vel.x) + (Math.PI/2);
-	let newPos = {
-		x: player.pos.x + (Math.sin(rot) * 0.2),
-		y: player.pos.y - (Math.cos(rot) * 0.2),
-	}
-	if(isValidPlayerPos(player.pos) && !isValidPlayerPos(newPos)){
-		socket.emit('update',{rot:rot,vel:0});
-		return;
-	}
-	socket.emit('update', {rot:rot,vel:player.maxVel});
-	// if(keyIsDown(38)){ //up
-	// 	if(keyIsDown(37))vel = {x:-1,y:-1};//up - left
-	// 	else if(keyIsDown(39)) vel = {x:1,y:-1};;//up - right
-	// 	else socket.emit('update', {x:0,y:-1});//up
-	// }
-	// else if(keyIsDown(40)){ //down
-	// 	if(keyIsDown(37))socket.emit('update', {x:-1,y:1});//down - left
-	// 	else if(keyIsDown(39))socket.emit('update', {x:1,y:1});//down - right
-	// 	else socket.emit('update', {x:0,y:1});
-	// }
-	// else if(keyIsDown(37))socket.emit('update', {x:-1,y:0});//left
-	// else if(keyIsDown(39))socket.emit('update', {x:1,y:0});//right
-	// else{
-	// 	socket.emit('update',{x:0,y:0});//stopped
-	// }
+	let controls = {}
+	if(keyIsDown(37)) controls.left = true;
+	if(keyIsDown(38)) controls.up = true;
+	if(keyIsDown(39)) controls.right = true;
+	if(keyIsDown(40)) controls.down = true;
+	socket.emit('update',controls);
 }
