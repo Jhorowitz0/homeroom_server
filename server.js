@@ -34,7 +34,7 @@ class Player{
 
     update(data){
         this.vel = data.vel;
-        this.rot = data.rot;
+        if(data.vel)this.rot = data.rot;
     }
 
     action(){
@@ -51,15 +51,17 @@ class Player{
             x: this.pos.x + (Math.sin(this.rot) * this.vel),
             y: this.pos.y - (Math.cos(this.rot) * this.vel)
         }
-        if(!isValidPlayerPos(newPos.x,newPos.y,this.id)) return;
+        // if(this.pos.x != newPos.x || this.pos.y != newPos.y) this.pushing = 0;
+        if(!isValidPlayerPos(newPos.x,newPos.y,this.id)){
+            if(this.pushing > 0){
+                this.pushing -= 1;
+                if(this.pushing == 1) pushDesk(this);
+            }
+            return;
+        }
+        this.pushing = 0;
         this.pos.x = newPos.x;
         this.pos.y = newPos.y;
-        if(this.vel) this.pushing = 0;
-
-        if(this.pushing > 0){
-            this.pushing -= 1;
-            if(this.pushing == 1) pushDesk(this);
-        }
         if(this.heldItem){
             gameState.backpacks[this.heldItem].pos.x = this.pos.x;
             gameState.backpacks[this.heldItem].pos.y = this.pos.y;
