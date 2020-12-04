@@ -673,7 +673,7 @@ setInterval(()=>{
     if(gameState.timeTillStart == 0){
         gameState.timeTillStart = -1;
         gameState.agents[1] = new Agent(0.5,0.5,'chase');
-        gameState.agents[1] = new Agent(0.5,0.5,'guard');
+        gameState.agents[2] = new Agent(0.5,0.5,'guard');
         if(playerCount == 4){
             let targetID = Math.floor(Math.random() * playerCount);
             for(id in gameState.players){

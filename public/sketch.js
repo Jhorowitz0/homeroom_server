@@ -281,15 +281,15 @@ function drawGrid(){
 }
 
 function drawTarget(x,y,s){
-	let result = getCanvasPos(x,y);
-	let size = width/gameState.worldSize;
-	noFill();
-	stroke(255,0,0);
-	strokeWeight(5);
-	ellipse(result.x,result.y,size*s,size*s);
-	line(result.x-size/2,result.y,result.x + size/2, result.y);
-	line(result.x,result.y-size/2,result.x, result.y + size/2);
-	noStroke();
+	// let result = getCanvasPos(x,y);
+	// let size = width/gameState.worldSize;
+	// noFill();
+	// stroke(255,0,0);
+	// strokeWeight(5);
+	// ellipse(result.x,result.y,size*s,size*s);
+	// line(result.x-size/2,result.y,result.x + size/2, result.y);
+	// line(result.x,result.y-size/2,result.x, result.y + size/2);
+	// noStroke();
 }
 
 function drawDoor(){
