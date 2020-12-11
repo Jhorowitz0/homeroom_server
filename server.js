@@ -385,7 +385,7 @@ var gameState = {
         1: new Backpack(7.5,5.5)
     },
     targetID: 0,
-    doorPos: {x:0,y:0},
+    doorPos: {x:1.5,y:0},
     timeTillStart: -1,
 }
 
@@ -670,7 +670,9 @@ setInterval(()=>{
         playerCount++;
     }
 
-    if(gameState.timeTillStart == 0){
+    if(playerCount < 4) gameState.agents = {};
+
+    if(gameState.timeTillStart == 0 && playerCount >= 4){
         gameState.timeTillStart = -1;
         gameState.agents[1] = new Agent(0.5,0.5,'chase');
         gameState.agents[2] = new Agent(0.5,0.5,'guard');
@@ -692,7 +694,7 @@ setInterval(()=>{
         if(gameState.timeTillStart > 0) continue;
         if(id == gameState.targetID){
             let pos = gameState.players[id].pos;
-            if(Math.floor(pos.x) == gameState.doorPos.x && Math.floor(pos.y) == gameState.doorPos.y){
+            if(Math.floor(pos.x)+0.5 == gameState.doorPos.x && Math.floor(pos.y) == gameState.doorPos.y){
                 restartGame();
             }
         } 
