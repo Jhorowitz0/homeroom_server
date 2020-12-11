@@ -55,22 +55,32 @@ function spawn(pos){
 	div.appendChild(para);
 
 	para = document.createElement("p");
-	node = document.createTextNode("Space:  pick up/place");
+	node = document.createTextNode("Space (tap):  pick up/place");
 	para.appendChild(node);
 	div.appendChild(para);
 
 	para = document.createElement("p");
-	node = document.createTextNode("Space(hold):  push desk");
+	node = document.createTextNode("Space (hold):  push desk");
 	para.appendChild(node);
 	div.appendChild(para);
 
 	para = document.createElement("p");
-	node = document.createTextNode("T: become target");
+	node = document.createTextNode("Goals:");
 	para.appendChild(node);
 	div.appendChild(para);
 
 	para = document.createElement("p");
-	node = document.createTextNode("L: return to lobby");
+	node = document.createTextNode("1. Identify who the ICE agents are targeting.");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("2. Stop the ICE agents from reaching the target player.");
+	para.appendChild(node);
+	div.appendChild(para);
+
+	para = document.createElement("p");
+	node = document.createTextNode("3. Get the target out of the classroom!");
 	para.appendChild(node);
 	div.appendChild(para);
 	
