@@ -51,9 +51,29 @@ class Player{
             x: this.pos.x + (Math.sin(this.rot) * this.vel),
             y: this.pos.y - (Math.cos(this.rot) * this.vel)
         }
-        // if(this.pos.x != newPos.x || this.pos.y != newPos.y) this.pushing = 0;
-        if(!isValidPlayerPos(newPos.x,newPos.y,this.id)){
-            if(this.pushing > 0){
+        dontmove: if(!isValidPlayerPos(newPos.x,newPos.y,this.id)){
+            if((this.rot < 0) ||
+            (this.rot > 0 && this.rot < 1) ||
+            (this.rot > 1.58 && this.rot < 3.14) ||
+            (this.rot > 3.15 && this.rot < 4.71)){
+                newPos = {
+                    x: this.pos.x + (Math.sin(this.rot) * this.vel),
+                    y: this.pos.y
+                }
+                if(isValidPlayerPos(newPos.x,newPos.y,this.id)){
+                    break dontmove;
+                }
+                else{
+                    newPos = {
+                        x: this.pos.x,
+                        y: this.pos.y - (Math.cos(this.rot) * this.vel)
+                    }
+                    if(isValidPlayerPos(newPos.x,newPos.y,this.id)){
+                        break dontmove;
+                    }
+                }
+            }
+            else if(this.pushing > 0){
                 this.pushing -= 1;
                 if(this.pushing == 1) pushDesk(this);
             }
@@ -314,12 +334,11 @@ function isValidPlayerPos(x,y,id){
         }
     }
 
-    if(getDeskId({
-        x: Math.floor(x),
-        y: Math.floor(y)
-    })){
-        return false;
-    }
+    if(getDeskId({x: Math.floor(x - 0.2),y: Math.floor(y + 0.2)}) ||
+    getDeskId({x: Math.floor(x + 0.2),y: Math.floor(y - 0.2)}) ||
+    getDeskId({x: Math.floor(x - 0.2),y: Math.floor(y - 0.2)}) ||
+    getDeskId({x: Math.floor(x + 0.2),y: Math.floor(y + 0.2)})
+    )return false;
     return true;
 }
 
