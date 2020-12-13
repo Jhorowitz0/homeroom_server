@@ -1,4 +1,4 @@
-const { text } = require("express");
+// const { text } = require("express");
 var socket;
 
 var gameState = null;
@@ -32,6 +32,10 @@ function draw(){
 		}
 		else drawLobby(); 
 	}
+	textSize(32);
+	textAlign(CENTER);
+	fill(255);
+	if(gameState)text(gameState.message,width/2,50);
 }
 
 function mousePressed(){
@@ -305,7 +309,7 @@ function drawTarget(x,y,s){
 function drawDoor(){
 	noStroke();
 	fill(255,0,0);
-	drawRectOnGrid(gameState.doorPos.x+0.5,gameState.doorPos.y+0.5,0.9);
+	drawRectOnGrid(gameState.doorPos.x,gameState.doorPos.y,0.9);
 	noStroke();
 }
 
@@ -316,7 +320,12 @@ function drawPlayers(){
 	for(id in gameState.players){
 		let player = gameState.players[id];
 		fill(0,255,0);
-		if(id == socket.id)fill(255,200,0);
+		if(player.color == 1) fill(255,100,155);
+		if(player.color == 2) fill(0,255,255);
+		if(player.color == 3) fill(255,255,0);
+
+		if(gameState.timeTillStart < 0)drawEllipseOnGrid(player.startPos.x,player.startPos.y,0.2);
+
 		drawEllipseOnGrid(player.pos.x,player.pos.y,0.4);
 		let pos = getCanvasPos(player.pos.x,player.pos.y);
 		push();

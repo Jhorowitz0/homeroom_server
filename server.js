@@ -11,7 +11,6 @@ app.use(express.static('public'));
 //------------------------CLASSES---------------------------
 class Player{
     constructor(x,y,id){
-        this.startPos = { x:x, y:y };
         this.pos = { x:x, y:y };
         this.vel = 0;
         this.maxVel = PLAYER_SPEED;
@@ -19,6 +18,9 @@ class Player{
         this.id = id;
         this.pushing = 0;
         this.heldItem = 0;
+        this.isReady = false;
+        this.color = getColor();
+        this.startPos = { x:spawns[this.color].x, y:spawns[this.color].y };
     }
 
     reset(){
@@ -34,7 +36,7 @@ class Player{
 
     update(data){
         this.vel = data.vel;
-        if(data.vel)this.rot = data.rot;
+        if(data.vel || gameState.timeTillStart > 0)this.rot = data.rot;
     }
 
     action(){
@@ -43,7 +45,7 @@ class Player{
             return;
         }
         grab(this);
-        if(this.heldItem == 0)this.pushing = 80;
+        if(this.heldItem == 0)this.pushing = 30;
     }
 
     move(){
@@ -147,8 +149,11 @@ class Agent{
                 x: gameState.players[gameState.targetID].pos.x,
                 y: gameState.players[gameState.targetID].pos.y
             }
-            if(getDistance(targetPos,this.pos) < 0.6) restartGame();
-            if(this.type == 'guard' && getDistance(targetPos,this.pos) > gameState.worldSize/3){
+            if(getDistance(targetPos,this.pos) < 0.6){
+                io.sockets.emit('lose');
+                loadLevel(CUR_LEVEL);
+            }
+            if(this.type == 'guard' && getDistance(targetPos,this.pos) > gameState.worldSize/4){
                 targetPos.x = this.startPos.x;
                 targetPos.y = this.startPos.y;
                 if(getDistance(targetPos,this.pos) < 1) return;
@@ -274,6 +279,17 @@ class Agent{
 
 //--------------------------------HELPER FUNCTIONS-------------------------------------------
 
+function getColor(){
+    loopColors: for(let result = 0; result < PLAYER_COUNT; result++){
+        let isPicked = false;
+        for(id in gameState.players){
+            if(gameState.players[id].color == result) continue loopColors;
+        }
+        return result;
+    }
+    return undefined;
+}
+
 //returns distance between two points
 function getDistance(pos1,pos2){
     let dx = pos2.x - pos1.x;
@@ -347,6 +363,13 @@ function isValidDeskPos(pos){
     if(pos.x < 0 || pos.x > gameState.worldSize-1 || pos.y < 0 || pos.y > gameState.worldSize-1) return false;
     if(getDeskId(pos)) return false;
     if(getPackID(pos)) return false;
+
+    for(id in gameState.players){
+        let player = gameState.players[id];
+
+        if(Math.floor(player.pos.x) == Math.floor(pos.x) && Math.floor(player.pos.y) == Math.floor(pos.y)) return false;
+    }
+
     return true;
 }
 
@@ -368,9 +391,151 @@ function isValidAgentPos(pos){
 //--------------------------------GLOBAL VARIABLES---------------------------------------------
 var UPDATE_TIME = 50;
 var PLAYER_SPEED = 0.15;
-var TARGET_SPEED = 0.1;
+var TARGET_SPEED = 0.07;
 var AGENT_SPEED = 0.11;
 var LOBBY_TIME = 100;
+var PLAYER_COUNT = 4;
+var CUR_LEVEL = 0;
+var spawns = [
+    {x:4.5,y:2.5},
+    {x:4.5,y:6.5},
+    {x:6.5,y:2.5},
+    {x:6.5,y:6.5}
+]
+var levels = [
+    {
+        desks: {
+            1: new Desk(1,3),
+            2: new Desk(1,4),
+            3: new Desk(1,5),
+            4: new Desk(3,1),
+            5: new Desk(3,2),
+            6: new Desk(3,3),
+            7: new Desk(5,1),
+            8: new Desk(5,2),
+            9: new Desk(5,3),
+            10: new Desk(7,1),
+            11: new Desk(7,2),
+            12: new Desk(7,3),
+            13: new Desk(3,5),
+            14: new Desk(3,6),
+            15: new Desk(3,7),
+            16: new Desk(5,5),
+            17: new Desk(5,6),
+            18: new Desk(5,7),
+            19: new Desk(7,5),
+            20: new Desk(7,6),
+            21: new Desk(7,7),
+        },
+        agents: {},
+        backpacks: {
+            0: new Backpack(5.5,2.5),
+            1: new Backpack(7.5,5.5)
+        },
+        doorPos: {x:2,y:0.5},
+    },
+
+    {
+        desks: {
+            1: new Desk(1,3),
+            2: new Desk(1,4),
+            3: new Desk(1,5),
+            4: new Desk(3,1),
+            5: new Desk(3,2),
+            6: new Desk(3,3),
+            7: new Desk(5,1),
+            8: new Desk(5,2),
+            9: new Desk(5,3),
+            10: new Desk(7,1),
+            11: new Desk(7,2),
+            12: new Desk(7,3),
+            13: new Desk(3,5),
+            14: new Desk(3,6),
+            15: new Desk(3,7),
+            16: new Desk(5,5),
+            17: new Desk(5,6),
+            18: new Desk(5,7),
+            19: new Desk(7,5),
+            20: new Desk(7,6),
+            21: new Desk(7,7),
+        },
+        agents: [
+            'chase',
+        ],
+        backpacks: {
+            // 0: new Backpack(5.5,2.5),
+        },
+        doorPos: {x:2,y:0.5},
+    },
+    {
+        desks: {
+            1: new Desk(1,3),
+            2: new Desk(1,4),
+            3: new Desk(1,5),
+            4: new Desk(3,1),
+            5: new Desk(3,2),
+            6: new Desk(3,3),
+            7: new Desk(5,1),
+            8: new Desk(5,2),
+            9: new Desk(5,3),
+            10: new Desk(7,1),
+            11: new Desk(7,2),
+            12: new Desk(7,3),
+            13: new Desk(3,5),
+            14: new Desk(3,6),
+            15: new Desk(3,7),
+            16: new Desk(5,5),
+            17: new Desk(5,6),
+            18: new Desk(5,7),
+            19: new Desk(7,5),
+            20: new Desk(7,6),
+            21: new Desk(7,7),
+        },
+        agents: [
+            'guard',
+        ],
+        backpacks: {
+            0: new Backpack(5.5,2.5),
+            // 1: new Backpack(7.5,5.5)
+        },
+        doorPos: {x:2,y:0.5},
+    },
+    {
+        desks: {
+            1: new Desk(1,3),
+            2: new Desk(1,4),
+            3: new Desk(1,5),
+            4: new Desk(3,1),
+            5: new Desk(3,2),
+            6: new Desk(3,3),
+            7: new Desk(5,1),
+            8: new Desk(5,2),
+            9: new Desk(5,3),
+            10: new Desk(7,1),
+            11: new Desk(7,2),
+            12: new Desk(7,3),
+            13: new Desk(3,5),
+            14: new Desk(3,6),
+            15: new Desk(3,7),
+            16: new Desk(5,5),
+            17: new Desk(5,6),
+            18: new Desk(5,7),
+            19: new Desk(7,5),
+            20: new Desk(7,6),
+            21: new Desk(7,7),
+        },
+        agents: [
+            'guard',
+            'chase'
+        ],
+        backpacks: {
+            0: new Backpack(5.5,2.5),
+            1: new Backpack(7.5,5.5)
+        },
+        doorPos: {x:2,y:0.5},
+    },
+
+]
 
 var gameState = {
     worldSize: 9,
@@ -404,27 +569,90 @@ var gameState = {
         1: new Backpack(7.5,5.5)
     },
     targetID: 0,
-    doorPos: {x:1.5,y:0},
+    doorPos: {x:2,y:0.5},
     timeTillStart: -1,
+    message: 'Waiting for players...'
 }
 
 //----------------------------------World Events-----------------------------------------------
 
-//resets everything to its starting position 
-function restartGame(){
-    for(id in gameState.desks){
-        gameState.desks[id].reset();
+function pickTarget(){
+    let targetPlayer = gameState.players[gameState.targetID];
+    if(targetPlayer) targetPlayer.maxVel = PLAYER_SPEED;
+    // for(id in gameState.players){
+    //     gameState.targetID = id;
+    //     gameState.players[gameState.targetID].maxVel = TARGET_SPEED;
+    //     return;
+    // }
+    let targetCounter = Math.random() * PLAYER_COUNT;
+    for(id in gameState.players){
+        if(Math.floor(targetCounter) == gameState.players[id].color){
+            gameState.targetID = id;
+            gameState.players[gameState.targetID].maxVel = TARGET_SPEED;
+            return;
+        }
     }
-    for(id in gameState.backpacks){
-        gameState.backpacks[id].reset();
+}
+
+function checkifTargetAtDoor(){
+    if(gameState.targetID == 0) return;
+    let dist = getDistance(gameState.players[gameState.targetID].pos, gameState.doorPos);
+    if(dist < 1){
+        CUR_LEVEL++;
+        if(CUR_LEVEL >= levels.length){
+            io.sockets.emit('win');
+            restartGame();
+        }
+        else{
+            loadLevel(CUR_LEVEL);
+            io.sockets.emit('end');
+        }
     }
+}
+
+function loadLevel(n){
+    console.log('level ' + n + ' loaded!');
+    let level = levels[n];
+    gameState.desks = level.desks;
     gameState.agents = {};
+    gameState.backpacks = level.backpacks;
+    gameState.doorPos = level.doorPos;
+
     for(id in gameState.players){
         gameState.players[id].reset();
     }
-    gameState.timeTillStart = LOBBY_TIME;
-    gameState.players[gameState.targetID].maxVel = PLAYER_SPEED;
-    gameState.targetID = 0;
+
+    if(n == 0){
+        if(gameState.targetID)gameState.players[gameState.targetID] = PLAYER_SPEED;
+        gameState.targetID == 0;
+        gameState.timeTillStart = -1;
+    }
+    else{
+        pickTarget();
+        gameState.timeTillStart = LOBBY_TIME;
+    }
+}
+
+function spawnAgents(){
+    console.log('agents spawned!');
+    gameState.agents = {};
+    for(id in levels[CUR_LEVEL].agents){
+        gameState.agents[id] = new Agent(gameState.doorPos.x, gameState.doorPos.y, levels[CUR_LEVEL].agents[id]);
+    }
+}
+
+function getPlayerCount(){
+    let result = 0;
+    for(id in gameState.players){
+        result ++;
+    }
+    return result;
+}
+
+//resets everything to its starting position 
+function restartGame(){
+    CUR_LEVEL = 0;
+    loadLevel(0);
 }
 
 //given a starting position and a rotation, attempt to push a desk
@@ -540,11 +768,8 @@ io.on('connection', function (socket) {
 
     //this is sent to the client
     socket.emit('updateState', gameState);
-    let playerCount = 0;
-    for(id in gameState.players){
-        playerCount++;
-    }
-    if(playerCount < 4){
+    let playerCount = getPlayerCount();
+    if(playerCount < PLAYER_COUNT){
         let pos = {
             x: Math.random() * gameState.worldSize,
             y: Math.random() * gameState.worldSize,
@@ -556,8 +781,6 @@ io.on('connection', function (socket) {
             }
         }
         gameState.players[socket.id] = new Player(pos.x,pos.y,socket.id);
-        playerCount ++;
-        if(playerCount == 4) gameState.timeTillStart = LOBBY_TIME;
     }
 
     socket.on('update', function(controls){
@@ -573,155 +796,71 @@ io.on('connection', function (socket) {
             let data = {}
             data.rot = Math.atan2(deltaPos.y, deltaPos.x) + Math.PI/2;
             data.vel = 1 * gameState.players[socket.id].maxVel;
-            if(deltaPos.x == 0 && deltaPos.y == 0) data.vel = 0;
+            if((deltaPos.x == 0 && deltaPos.y == 0) || gameState.timeTillStart > 0) data.vel = 0;
             gameState.players[socket.id].update(data);
         }
     });
 
-    // socket.on('door', function(pos){
-    //     gameState.doorPos.x = pos.x;
-    //     gameState.doorPos.y = pos.y;
-    // });
-
-    // socket.on('target', () => {
-    //     if(!(socket.id in gameState.players)) return;
-    //     if(socket.id == gameState.targetID){
-    //         gameState.targetID = 0;
-    //         gameState.players[socket.id].maxSpeed = PLAYER_SPEED;
-    //     }
-    //     else{
-    //         if(gameState.players[gameState.targetID]) gameState.players[gameState.targetID].maxSpeed = PLAYER_SPEED;
-    //         gameState.targetID = socket.id;
-    //         gameState.players[socket.id].maxSpeed = TARGET_SPEED;
-    //     }
-    // });
-
     socket.on('action',() => {
-        let playerCount = 0;
-        for(id in gameState.players){
-            playerCount++;
-        }
         if(gameState.targetID == socket.id
-            || gameState.timeTillStart > 0
-            || playerCount < 4) return;
+            || gameState.timeTillStart > 0){
+                return;
+            }
         if(gameState.players[socket.id]) gameState.players[socket.id].action();
     });
-
-    // socket.on('clear', ()=>{
-    //     gameState.players = {};
-    //     gameState.desks = {};
-    //     gameState.agents = {};
-    //     gameState.backpacks = {};
-    //     io.sockets.emit('kicked');
-    // });
-
-    // socket.on('restart', restartGame);
-
-    // socket.on('resize',delta=>{
-    //     gameState.players = {};
-    //     gameState.desks = {};
-    //     gameState.agents = {};
-    //     gameState.backpacks = {};
-    //     io.sockets.emit('kicked');
-    //     gameState.worldSize -= delta;
-    // });
-
-    // socket.on('desk', pos=>{
-    //     for(id in gameState.desks){
-    //         let desk = gameState.desks[id];
-    //         if(pos.x == desk.pos.x && pos.y == desk.pos.y){                  
-    //                 delete gameState.desks[id];
-    //                 return;
-    //         }
-    //     }
-
-    //     gameState.desks[Math.random()] = new Desk(pos.x,pos.y);
-    // });
-
-    // socket.on('agent', data=>{
-    //     for(id in gameState.agents){
-    //         if(Math.floor(gameState.agents[id].pos.x) == Math.floor(data.pos.x)
-    //          && Math.floor(gameState.agents[id].pos.y) == Math.floor(data.pos.y)){
-    //              delete gameState.agents[id];
-    //              return;
-    //          }
-    //     }
-    //     if(isValidAgentPos(data.pos)){
-    //         gameState.agents[Math.random()] = new Agent(data.pos.x,data.pos.y,data.type);
-    //     }
-    // })
-
-    // socket.on('pack',pos=>{
-    //     for(id in gameState.objects){
-    //         let pack = gameState.backpacks[id];
-    //             if(pos.x == obj.pos.x && pos.y == obj.pos.y){
-    //                 delete gameState.backpacks[id];
-    //                 return;
-    //             }
-    //     }
-
-    //     gameState.backpacks[Math.random()] = new Backpack(pos.x,pos.y);
-    // });
 
     socket.on('disconnect', function(){
         console.log('user disconnected');
         delete gameState.players[socket.id];
     });
 
-    // socket.on('leave', function(){
-    //     console.log('user despawned');
-    //     delete gameState.players[socket.id];
-    //     socket.emit('kicked');
-    // });
 });
 
 
 //gamestate update loop
 setInterval(()=>{
+    let playerCount = getPlayerCount();
 
+    if(playerCount < PLAYER_COUNT) gameState.message = 'Waiting for players...';
+    else if(CUR_LEVEL == 0) gameState.message = 'Get to your seats to start';
+    else if(gameState.timeTillStart > 0) gameState.message = 'Starting at the bell';
+    else gameState.message = '';
+
+
+    readyCheck: if(CUR_LEVEL == 0 && playerCount == PLAYER_COUNT){
+        for(id in gameState.players){
+            let player = gameState.players[id];
+            if(getDistance(player.pos,player.startPos) > 0.4) break readyCheck;
+        }
+        CUR_LEVEL = 1;
+        loadLevel(1);
+    }
 
     if(gameState.timeTillStart > 0){
         gameState.timeTillStart--;
     }
 
-    let playerCount = 0;
-    for(id in gameState.players){
-        playerCount++;
+    if(CUR_LEVEL > 0 && playerCount < PLAYER_COUNT){
+        restartGame();
     }
 
-    if(playerCount < 4) gameState.agents = {};
-
-    if(gameState.timeTillStart == 0 && playerCount >= 4){
-        gameState.timeTillStart = -1;
-        gameState.agents[1] = new Agent(0.5,0.5,'chase');
-        gameState.agents[2] = new Agent(0.5,0.5,'guard');
-        if(playerCount == 4){
-            let targetID = Math.floor(Math.random() * playerCount);
-            for(id in gameState.players){
-                if(targetID == 0){
-                    gameState.targetID = id;
-                    gameState.players[gameState.targetID].maxVel = TARGET_SPEED;
-                }
-                targetID --;
-            }
-        }
+    if(gameState.timeTillStart == 0){
+        if(!gameState.agents[0]) spawnAgents();
     }
 
+    checkifTargetAtDoor();
 
+    //update players
     for(id in gameState.players){
         gameState.players[id].move();
-        if(gameState.timeTillStart > 0) continue;
-        if(id == gameState.targetID){
-            let pos = gameState.players[id].pos;
-            if(Math.floor(pos.x)+0.5 == gameState.doorPos.x && Math.floor(pos.y) == gameState.doorPos.y){
-                restartGame();
-            }
-        } 
     }
+
+    //update agents
     for(h in gameState.agents){
         if(gameState.agents[h])gameState.agents[h].update();
         if(gameState.agents[h])gameState.agents[h].move();
     }
+    //send new state out
     io.sockets.emit('state', gameState);
 }, UPDATE_TIME);
 
