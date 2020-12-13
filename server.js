@@ -391,7 +391,7 @@ function isValidAgentPos(pos){
 //--------------------------------GLOBAL VARIABLES---------------------------------------------
 var UPDATE_TIME = 50;
 var PLAYER_SPEED = 0.15;
-var TARGET_SPEED = 0.07;
+var TARGET_SPEED = 0.085;
 var AGENT_SPEED = 0.11;
 var LOBBY_TIME = 100;
 var PLAYER_COUNT = 4;
@@ -611,7 +611,6 @@ function checkifTargetAtDoor(){
 }
 
 function loadLevel(n){
-    console.log('level ' + n + ' loaded!');
     let level = levels[n];
     gameState.desks = level.desks;
     gameState.agents = {};
@@ -634,11 +633,11 @@ function loadLevel(n){
 }
 
 function spawnAgents(){
-    console.log('agents spawned!');
     gameState.agents = {};
     for(id in levels[CUR_LEVEL].agents){
         gameState.agents[id] = new Agent(gameState.doorPos.x, gameState.doorPos.y, levels[CUR_LEVEL].agents[id]);
     }
+    io.sockets.emit('start');
 }
 
 function getPlayerCount(){
