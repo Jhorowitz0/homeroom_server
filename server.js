@@ -122,7 +122,7 @@ class Agent{
         this.startPos = { x:x, y:y };
         this.pos = { x:x, y:y };
         this.type = type;
-        this.rot = 0;
+        this.rot = Math.PI;
         this.prevPos = [
             { x:x, y:y },
             { x:x, y:y },
@@ -600,12 +600,12 @@ function checkifTargetAtDoor(){
     if(dist < 1){
         CUR_LEVEL++;
         if(CUR_LEVEL >= levels.length){
-            io.sockets.emit('win');
+            io.sockets.emit('end');
             restartGame();
         }
         else{
             loadLevel(CUR_LEVEL);
-            io.sockets.emit('end');
+            io.sockets.emit('win');
         }
     }
 }
@@ -619,6 +619,10 @@ function loadLevel(n){
 
     for(id in gameState.players){
         gameState.players[id].reset();
+    }
+
+    for(id in gameState.backpacks){
+        gameState.backpacks[id].reset();
     }
 
     if(n == 0){

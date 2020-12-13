@@ -14,6 +14,18 @@ function setup() {
 		gameState = newState;
 	});
 
+	socket.on('win', () => {
+		console.log('win');
+	});
+
+	socket.on('lose', () => {
+		console.log('lose');
+	});
+
+	socket.on('start', () => {
+		console.log('ball ring');
+	});
+
 	spawn();
 }
 
