@@ -42,10 +42,14 @@ class Player{
     action(){
         if(this.heldItem){
             place(this);
+            this.maxVel = PLAYER_SPEED;
             return;
         }
         grab(this);
         if(this.heldItem == 0)this.pushing = 30;
+        else{
+            this.maxVel = TARGET_SPEED;
+        }
     }
 
     move(){
@@ -434,10 +438,10 @@ var levels = [
         },
         agents: {},
         backpacks: {
-            0: new Backpack(3.5,2.5),
-            1: new Backpack(3.5,6.5),
-            2: new Backpack(5.5,2.5),
-            3: new Backpack(5.5,6.5),
+            1: new Backpack(3.5,2.5),
+            2: new Backpack(3.5,6.5),
+            3: new Backpack(5.5,2.5),
+            4: new Backpack(5.5,6.5),
         },
         doorPos: {x:2,y:0.5},
     },
@@ -471,11 +475,11 @@ var levels = [
             'chase',
         ],
         backpacks: {
-            0: new Backpack(5.5,4.5),
+            1: new Backpack(5.5,4.5),
 
-            1: new Backpack(500.5,6.5),
-            2: new Backpack(500.5,2.5),
-            3: new Backpack(500.5,6.5),
+            2: new Backpack(500.5,6.5),
+            3: new Backpack(500.5,2.5),
+            4: new Backpack(500.5,6.5),
         },
         doorPos: {x:2,y:0.5},
     },
@@ -508,11 +512,11 @@ var levels = [
             'guard',
         ],
         backpacks: {
-            0: new Backpack(1.5,4.5),
+            1: new Backpack(1.5,4.5),
 
-            1: new Backpack(500.5,6.5),
-            2: new Backpack(500.5,2.5),
-            3: new Backpack(500.5,6.5),
+            2: new Backpack(500.5,6.5),
+            3: new Backpack(500.5,2.5),
+            4: new Backpack(500.5,6.5),
         },
         doorPos: {x:2,y:0.5},
     },
@@ -545,11 +549,11 @@ var levels = [
             'chase'
         ],
         backpacks: {
-            0: new Backpack(5.5,3.5),
-            1: new Backpack(5.5,5.5),
+            1: new Backpack(5.5,3.5),
+            2: new Backpack(5.5,5.5),
 
-            2: new Backpack(500.5,2.5),
-            3: new Backpack(500.5,6.5),
+            3: new Backpack(500.5,2.5),
+            4: new Backpack(500.5,6.5),
         },
         doorPos: {x:2,y:0.5},
     },
@@ -575,10 +579,10 @@ var gameState = {
     },
     agents: {},
     backpacks: {
-        0: new Backpack(3.5,2.5),
-        1: new Backpack(3.5,6.5),
-        2: new Backpack(5.5,2.5),
-        3: new Backpack(5.5,6.5),
+        1: new Backpack(3.5,2.5),
+        2: new Backpack(3.5,6.5),
+        3: new Backpack(5.5,2.5),
+        4: new Backpack(5.5,6.5),
     },
     targetID: 0,
     doorPos: {x:2,y:0.5},
