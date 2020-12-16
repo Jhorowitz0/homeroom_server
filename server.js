@@ -150,7 +150,7 @@ class Agent{
                 y: gameState.players[gameState.targetID].pos.y
             }
             if(getDistance(targetPos,this.pos) < 0.6){
-                io.sockets.emit('lose');
+                io.sockets.emit('lose',true);
                 loadLevel(CUR_LEVEL);
             }
             if(this.type == 'guard' && getDistance(targetPos,this.pos) > gameState.worldSize/4){
@@ -604,12 +604,12 @@ function checkifTargetAtDoor(){
     if(dist < 1){
         CUR_LEVEL++;
         if(CUR_LEVEL >= levels.length){
-            io.sockets.emit('end');
+            io.sockets.emit('end',true);
             restartGame();
         }
         else{
             loadLevel(CUR_LEVEL);
-            io.sockets.emit('win');
+            io.sockets.emit('win',true);
         }
     }
 }
@@ -650,7 +650,7 @@ function spawnAgents(){
     for(id in levels[CUR_LEVEL].agents){
         gameState.agents[id] = new Agent(gameState.doorPos.x, gameState.doorPos.y, levels[CUR_LEVEL].agents[id]);
     }
-    io.sockets.emit('start');
+    io.sockets.emit('start',true);
 }
 
 function getPlayerCount(){
