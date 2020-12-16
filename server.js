@@ -625,6 +625,11 @@ function loadLevel(n){
         gameState.backpacks[id].reset();
     }
 
+    for(id in gameState.desks){
+        gameState.desks[id].reset();
+    }
+
+
     if(n == 0){
         if(gameState.targetID)gameState.players[gameState.targetID] = PLAYER_SPEED;
         gameState.targetID == 0;

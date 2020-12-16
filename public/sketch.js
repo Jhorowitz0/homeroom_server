@@ -23,7 +23,7 @@ function setup() {
 	});
 
 	socket.on('start', () => {
-		console.log('ball ring');
+		console.log('bell ring');
 	});
 
 	spawn();
