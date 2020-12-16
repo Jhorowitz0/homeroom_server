@@ -693,6 +693,7 @@ function pushDesk(player){
     if(getPackID(pos))return;
     let id = getDeskId(pos);
     if(id && isValidDeskPos(newPos)){
+        io.sockets.emit('push',true);
         gameState.desks[id].pos.x = newPos.x;
         gameState.desks[id].pos.y = newPos.y;
     }
@@ -723,6 +724,7 @@ function grab(player){
     let id = getPackID(pos);
     if(id){
         if(gameState.backpacks[id].spilled)return;
+        io.sockets.emit('pickup',true);
         for(i in gameState.players){
             if(gameState.players[i].heldItem == id){
                 gameState.players[i].heldItem = 0;
@@ -758,12 +760,14 @@ function place(player){
         gameState.backpacks[player.heldItem].pos.x = pos.x + 0.5;
         gameState.backpacks[player.heldItem].pos.y = pos.y + 0.5;
         player.heldItem = 0;
+        io.sockets.emit('drop',true);
     }
     else if(isValidDeskPos(pos)){
         gameState.backpacks[player.heldItem].spilled = true;
         gameState.backpacks[player.heldItem].pos.x = pos.x + 0.5;
         gameState.backpacks[player.heldItem].pos.y = pos.y + 0.5;
         player.heldItem = 0;
+        io.sockets.emit('drop',true);
     }
 }
 
