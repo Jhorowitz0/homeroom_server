@@ -420,7 +420,17 @@ var levels = [
             9: new Desk(5,6),
             10: new Desk(5,2),
             11: new Desk(5,4),
-            12: new Desk(5,6)
+            12: new Desk(5,6),
+            
+            13: new Desk(300,5),
+            14: new Desk(300,6),
+            15: new Desk(300,7),
+            16: new Desk(500,5),
+            17: new Desk(500,6),
+            18: new Desk(500,7),
+            19: new Desk(700,5),
+            20: new Desk(700,6),
+            21: new Desk(700,7),
         },
         agents: {},
         backpacks: {
@@ -445,13 +455,27 @@ var levels = [
             9: new Desk(5,6),
             10: new Desk(7,2),
             11: new Desk(7,4),
-            12: new Desk(7,6)
+            12: new Desk(7,6),
+
+            13: new Desk(300,5),
+            14: new Desk(300,6),
+            15: new Desk(300,7),
+            16: new Desk(500,5),
+            17: new Desk(500,6),
+            18: new Desk(500,7),
+            19: new Desk(700,5),
+            20: new Desk(700,6),
+            21: new Desk(700,7),
         },
         agents: [
             'chase',
         ],
         backpacks: {
             0: new Backpack(5.5,4.5),
+
+            1: new Backpack(500.5,6.5),
+            2: new Backpack(500.5,2.5),
+            3: new Backpack(500.5,6.5),
         },
         doorPos: {x:2,y:0.5},
     },
@@ -468,12 +492,27 @@ var levels = [
             9: new Desk(5,6),
             10: new Desk(6,3),
             11: new Desk(6,5),
+
+            12: new Desk(700,3),
+            13: new Desk(300,5),
+            14: new Desk(300,6),
+            15: new Desk(300,7),
+            16: new Desk(500,5),
+            17: new Desk(500,6),
+            18: new Desk(500,7),
+            19: new Desk(700,5),
+            20: new Desk(700,6),
+            21: new Desk(700,7),
         },
         agents: [
             'guard',
         ],
         backpacks: {
             0: new Backpack(1.5,4.5),
+
+            1: new Backpack(500.5,6.5),
+            2: new Backpack(500.5,2.5),
+            3: new Backpack(500.5,6.5),
         },
         doorPos: {x:2,y:0.5},
     },
@@ -507,7 +546,10 @@ var levels = [
         ],
         backpacks: {
             0: new Backpack(5.5,3.5),
-            1: new Backpack(5.5,5.5)
+            1: new Backpack(5.5,5.5),
+
+            2: new Backpack(500.5,2.5),
+            3: new Backpack(500.5,6.5),
         },
         doorPos: {x:2,y:0.5},
     },
