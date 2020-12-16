@@ -156,8 +156,12 @@ class Agent{
             if(this.type == 'guard' && getDistance(targetPos,this.pos) > gameState.worldSize/4){
                 targetPos.x = this.startPos.x;
                 targetPos.y = this.startPos.y;
-                if(getDistance(targetPos,this.pos) < 1) return;
+                if(getDistance(targetPos,this.pos) < 1){
+                    this.speed = 0;
+                    return;
+                }
             }
+            this.speed = AGENT_SPEED;
             let closest = 0;
             for(let i = 0; i < possiblePositions.length; i++){
                 let closestDist = getDistance(possiblePositions[closest],targetPos);
